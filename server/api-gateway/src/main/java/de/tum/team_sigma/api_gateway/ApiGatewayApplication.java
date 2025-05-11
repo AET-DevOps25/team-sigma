@@ -1,12 +1,16 @@
 package de.tum.team_sigma.api_gateway;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
-import static org.springframework.web.servlet.function.RouterFunctions.*;
-import static org.springframework.web.servlet.function.RequestPredicates.*;
+
+import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.*;
+import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequestPredicates.*;
+import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.*;
+import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.*;
+import static org.springframework.cloud.gateway.server.mvc.filter.LoadBalancerFilterFunctions.*;
 
 @SpringBootApplication
 public class ApiGatewayApplication {
@@ -15,7 +19,11 @@ public class ApiGatewayApplication {
     }
 
     @Bean
-    public RouterFunction<ServerResponse> apiRoutes() {
-        return route(GET("/api/hello"), request -> ServerResponse.ok().body("Hello from API Gateway"));
+    public RouterFunction<ServerResponse> helloServiceRouteConfig() {
+        return route("hello-service")
+                .route(path("/api/hello/**"), http())
+                .before(stripPrefix(1))
+                .filter(lb("hello-service"))
+                .build();
     }
 }

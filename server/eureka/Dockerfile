@@ -1,9 +1,8 @@
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM gradle:8.14-jdk21-alpine AS builder
 WORKDIR /app
-COPY build.gradle settings.gradle gradlew gradlew.bat ./
-COPY gradle ./gradle
+COPY build.gradle settings.gradle ./
 COPY src ./src
-RUN ./gradlew build
+RUN gradle build
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

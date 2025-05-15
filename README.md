@@ -1,67 +1,34 @@
-# 📝 Problem Statement
+# Team σ Project
 
-## **⚠️ Deadline for submission: 16 May 2025**
+## Getting Started
 
----
+Follow these instructions to get the project up and running on your local machine.
 
-## 1\. Team Information
+### Prerequisites
 
-### Team Members:
+- [Docker](https://www.docker.com/get-started) for running the server
+- [Bun](https://bun.sh/) for running the client
 
-* Maria Pospelova  
-* Simon Huang  
-* Alexander Steinhauer
+### Running the Project
 
----
+#### Server
 
-## 2\. Problem Statement (max. 5 sentences)
+Start the server services using Docker:
 
-**Our application supports students in preparing for exams by transforming lecture slides into personalized study aids.**  
-It offers concise summaries of slide content and provides an interactive AI-powered tutor that answers questions, quizzes students, and adapts to their learning pace.
+```bash
+docker compose up
+```
 
-**Main functionality:**
+The server API will be available at its gateway at http://localhost:8080/api.
 
-* Converts slides into digestible summaries  
-* Enables active recall through quizzes and flashcards  
-* Offers a conversational AI tutor for clarification and guidance
+#### Client
 
-**Intended users:**
+Navigate to the client directory and start the development server:
 
-* University and high school students preparing for exams
+```bash
+cd client
+bun i
+bun dev
+```
 
-**GenAI integration:**  
-We use GenAI to generate accurate, context-aware summaries and to power the smart tutor, which provides personalized explanations, identifies knowledge gaps, and adapts study material based on user interaction.
-
----
-
-## 3\. High-Level Functional Points
-
-Our application will provide the following main functional requirements.
-
-* User can sign up, log in  
-* User can upload lecture slides  
-* Create AI based summary out of lecture slides  
-* Chatbot for each uploaded lecture to clarify lecture concepts  
-* Create AI based quizzes for lecture slides  
-* User can view all lecture slides they have ever uploaded and chat with respective bots  
-* Users should be able to share and add material to the same lecture
-
----
-
-## 4\. Initial System Structure (Text and Diagram)
-
-* **Server:** Spring Boot REST API  
-* **Client:** React v19 \+ Vite \+ Tailwind \+ Tanstack Router \+ Clerk  
-* **GenAI Service:** Python, LangChain microservice  
-* **Database:** PostgreSQL \+ Weaviate (Vector DB)  
-* **Authentication/Usermanagement:** with Clerk
-
-Include a first UML diagram (Component Diagram / Subsystem Decomposition). You can use tools like [PlantUML](https://plantuml.com/) or embed an image.
-
----
-
-## 📅 Important Notes
-
-* This is your first version. You will be allowed to adjust your design later.  
-* This document must be stored in your team’s GitHub repository (e.g., `/docs/initial_concept.md`).
-
+The client application should now be accessible at http://localhost:5713.

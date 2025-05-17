@@ -26,6 +26,7 @@ services:
     depends_on:
       - eureka
     networks:
+      - client-network
       - spring-cloud-network
 
   hello-service:
@@ -40,6 +41,17 @@ services:
     networks:
       - spring-cloud-network
 
+  client:
+    build:
+      context: ./client
+    ports:
+      - "3000:80"
+    networks:
+      - client-network
+
 networks:
+  client-network:
+    driver: bridge
+
   spring-cloud-network:
     driver: bridge

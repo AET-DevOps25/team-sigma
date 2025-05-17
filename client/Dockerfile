@@ -1,0 +1,11 @@
+FROM oven/bun:1.2-alpine AS builder
+WORKDIR /app
+COPY ./package.json ./bun.lock ./
+RUN bun i
+COPY ./eslint.config.js ./index.html ./tsconfig.* ./vite.config.ts ./
+COPY ./public/ ./public/
+COPY ./src/ ./src/
+RUN bun run build
+
+FROM nginx:mainline-alpine-slim
+COPY --from=builder /app/dist /usr/share/nginx/html

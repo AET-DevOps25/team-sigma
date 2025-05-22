@@ -20,6 +20,7 @@ docker compose up
 ```
 
 The server API will be available at its gateway at http://localhost:8080/api.
+The production client will also be available at http://localhost:3000 — don't use it for development.
 
 #### Client
 

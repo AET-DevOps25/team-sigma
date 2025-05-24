@@ -16,10 +16,12 @@
     "@tanstack/react-query-devtools": "^5.77.0",
     "@tanstack/react-router": "^1.120.10",
     "@tanstack/react-router-devtools": "^1.120.10",
+    "immer": "^10.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-scan": "^0.3.4",
-    "tailwindcss": "^4.1.7"
+    "tailwindcss": "^4.1.7",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.26.0",

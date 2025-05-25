@@ -25,4 +25,4 @@ spec:
   type: NodePort
 {{- end }}
 {{- end }}
-{{- end }} 
+{{- end }}

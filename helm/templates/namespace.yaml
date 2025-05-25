@@ -10,4 +10,4 @@ metadata:
     {{- range $key, $value := .Values.global.labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
-{{- end }} 
+{{- end }}

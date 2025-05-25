@@ -9,7 +9,7 @@ set -e
 
 ENV=${1:-default}
 RELEASE_NAME=${2:-team-sigma}
-CHART_PATH="./team-sigma"
+CHART_PATH="."
 NAMESPACE="team-sigma"
 
 echo "🚀 Deploying Team Sigma with Helm..."
@@ -38,14 +38,14 @@ case $ENV in
     "dev")
         echo "🔧 Deploying to development environment..."
         helm upgrade --install $RELEASE_NAME $CHART_PATH \
-            -f $CHART_PATH/values-dev.yaml \
+            -f ./values-dev.yaml \
             --namespace $NAMESPACE \
             --wait
         ;;
     "prod")
         echo "🏭 Deploying to production environment..."
         helm upgrade --install $RELEASE_NAME $CHART_PATH \
-            -f $CHART_PATH/values-prod.yaml \
+            -f ./values-prod.yaml \
             --namespace $NAMESPACE \
             --wait
         ;;

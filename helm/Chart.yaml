@@ -1,17 +1,15 @@
 apiVersion: v2
-name: team-sigma
-description: A comprehensive Helm chart for the Team Sigma microservices architecture
+name: nemo
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
-keywords:
-  - microservices
-  - spring-boot
-  - eureka
-  - api-gateway
-home: https://github.com/team-sigma/team-sigma
+home: https://github.com/AET-DevOps25/team-sigma
 sources:
-  - https://github.com/team-sigma/team-sigma
+  - https://github.com/AET-DevOps25/team-sigma
 maintainers:
-  - name: Team Sigma
-    email: team-sigma@example.com
+  - name: Maria Pospelova
+    email: maria.pospelova@tum.de
+  - name: Simon Huang
+    email: simon.huang@tum.de
+  - name: Alexander Steinhauer
+    email: alexander.steinhauer@tum.de

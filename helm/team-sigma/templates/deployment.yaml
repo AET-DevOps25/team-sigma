@@ -1,0 +1,104 @@
+{{- range $serviceName, $service := .Values.services }}
+{{- if $service.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $service.name }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ $service.name }}
+    component: {{ $service.component }}
+    {{- include "team-sigma.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $service.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $service.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $service.name }}
+        component: {{ $service.component }}
+        {{- include "team-sigma.selectorLabels" $ | nindent 8 }}
+    spec:
+      {{- if $service.initContainers }}
+      initContainers:
+        {{- range $service.initContainers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          {{- if .command }}
+          command:
+            {{- range .command }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ $service.name }}
+          image: {{ $.Values.global.imageRegistry }}/{{ $service.image }}:{{ $.Values.global.imageTag }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ $service.containerPort }}
+              name: http
+              protocol: {{ $service.protocol }}
+          {{- if $service.env }}
+          env:
+            {{- range $service.env }}
+            - name: {{ .name }}
+              {{- if .value }}
+              value: {{ .value | quote }}
+              {{- else if .valueFrom }}
+              valueFrom:
+                {{- if .valueFrom.configMapKeyRef }}
+                configMapKeyRef:
+                  name: {{ .valueFrom.configMapKeyRef.name }}
+                  key: {{ .valueFrom.configMapKeyRef.key }}
+                {{- end }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if $service.livenessProbe }}
+          livenessProbe:
+            {{- if $service.livenessProbe.httpGet }}
+            httpGet:
+              path: {{ $service.livenessProbe.httpGet.path }}
+              port: {{ $service.livenessProbe.httpGet.port }}
+            {{- end }}
+            initialDelaySeconds: {{ $service.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $service.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{- if $service.readinessProbe }}
+          readinessProbe:
+            {{- if $service.readinessProbe.httpGet }}
+            httpGet:
+              path: {{ $service.readinessProbe.httpGet.path }}
+              port: {{ $service.readinessProbe.httpGet.port }}
+            {{- end }}
+            initialDelaySeconds: {{ $service.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $service.readinessProbe.periodSeconds }}
+          {{- end }}
+          {{- if $service.resources }}
+          resources:
+            {{- if $service.resources.requests }}
+            requests:
+              {{- if $service.resources.requests.memory }}
+              memory: {{ $service.resources.requests.memory }}
+              {{- end }}
+              {{- if $service.resources.requests.cpu }}
+              cpu: {{ $service.resources.requests.cpu }}
+              {{- end }}
+            {{- end }}
+            {{- if $service.resources.limits }}
+            limits:
+              {{- if $service.resources.limits.memory }}
+              memory: {{ $service.resources.limits.memory }}
+              {{- end }}
+              {{- if $service.resources.limits.cpu }}
+              cpu: {{ $service.resources.limits.cpu }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+{{- end }}
+{{- end }} 

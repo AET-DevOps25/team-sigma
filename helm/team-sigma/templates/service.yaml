@@ -1,0 +1,23 @@
+{{- range $serviceName, $service := .Values.services }}
+{{- if $service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $service.name }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ $service.name }}
+    component: {{ $service.component }}
+    {{- include "team-sigma.labels" $ | nindent 4 }}
+spec:
+  selector:
+    app: {{ $service.name }}
+  ports:
+    - name: http
+      port: {{ $service.port }}
+      targetPort: {{ $service.containerPort }}
+      protocol: {{ $service.protocol }}
+  type: {{ $service.serviceType }}
+{{- end }}
+{{- end }} 

@@ -1,0 +1,28 @@
+{{- if .Values.nodePort.enabled }}
+{{- range $serviceName, $nodePortConfig := .Values.nodePort.services }}
+{{- $service := index $.Values.services $serviceName }}
+{{- if $service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $service.name }}-nodeport
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ $service.name }}
+    component: {{ $service.component }}
+    service-type: nodeport
+    {{- include "team-sigma.labels" $ | nindent 4 }}
+spec:
+  selector:
+    app: {{ $service.name }}
+  ports:
+    - name: http
+      port: {{ $nodePortConfig.port }}
+      targetPort: {{ $service.containerPort }}
+      nodePort: {{ $nodePortConfig.nodePort }}
+      protocol: TCP
+  type: NodePort
+{{- end }}
+{{- end }}
+{{- end }} 

@@ -1,0 +1,277 @@
+# Global configuration shared across all services
+global:
+  namespace: team-sigma
+  imageRegistry: team-sigma
+  imageTag: latest
+  imagePullPolicy: IfNotPresent
+
+  # Common labels applied to all resources
+  labels:
+    app.kubernetes.io/name: team-sigma
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: "Helm"
+
+# Namespace configuration
+namespace:
+  create: true
+  name: team-sigma
+  labels:
+    app.kubernetes.io/name: team-sigma
+    app.kubernetes.io/version: "1.0.0"
+
+# ConfigMap for shared configuration
+configMap:
+  enabled: true
+  data:
+    EUREKA_HOST: "eureka"
+    EUREKA_PORT: "8761"
+    EUREKA_URL: "http://eureka:8761/eureka/"
+    API_GATEWAY_PORT: "8080"
+    HELLO_SERVICE_PORT: "8081"
+    CLIENT_PORT: "80"
+    SPRING_PROFILES_ACTIVE: "kubernetes"
+    LOGGING_LEVEL_ROOT: "INFO"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  host: team-sigma.local
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  paths:
+    - path: /
+      pathType: Prefix
+      service: client
+      port: 80
+    - path: /api
+      pathType: Prefix
+      service: api-gateway
+      port: 8080
+    - path: /eureka
+      pathType: Prefix
+      service: eureka
+      port: 8761
+
+# NodePort services for development (similar to docker-compose port mapping)
+nodePort:
+  enabled: true
+  services:
+    client:
+      port: 80
+      nodePort: 30000
+    api-gateway:
+      port: 8080
+      nodePort: 30080
+    eureka:
+      port: 8761
+      nodePort: 30761
+
+# Service configurations
+services:
+  # Client (Frontend)
+  client:
+    enabled: true
+    name: client
+    component: frontend
+    image: client
+    replicas: 2
+    port: 80
+    containerPort: 80
+    protocol: TCP
+    serviceType: ClusterIP
+
+    # Health checks
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 30
+      periodSeconds: 30
+
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+    # Resource limits
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+
+    # Environment variables
+    env: []
+
+    # Init containers
+    initContainers: []
+
+  # API Gateway
+  api-gateway:
+    enabled: true
+    name: api-gateway
+    component: gateway
+    image: api-gateway
+    replicas: 2
+    port: 8080
+    containerPort: 8080
+    protocol: TCP
+    serviceType: ClusterIP
+
+    # Health checks
+    livenessProbe:
+      httpGet:
+        path: /actuator/health
+        port: 8080
+      initialDelaySeconds: 60
+      periodSeconds: 30
+
+    readinessProbe:
+      httpGet:
+        path: /actuator/health
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 10
+
+    # Resource limits
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+    # Environment variables
+    env:
+      - name: SPRING_APPLICATION_NAME
+        value: "api-gateway"
+      - name: SERVER_PORT
+        value: "8080"
+      - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        valueFrom:
+          configMapKeyRef:
+            name: team-sigma-config
+            key: EUREKA_URL
+
+    # Init containers
+    initContainers:
+      - name: wait-for-eureka
+        image: busybox:1.35
+        command:
+          - "sh"
+          - "-c"
+          - "until nc -z eureka 8761; do echo waiting for eureka; sleep 2; done;"
+
+  # Hello Service
+  hello-service:
+    enabled: true
+    name: hello-service
+    component: microservice
+    image: hello-service
+    replicas: 2
+    port: 8081
+    containerPort: 8081
+    protocol: TCP
+    serviceType: ClusterIP
+
+    # Health checks
+    livenessProbe:
+      httpGet:
+        path: /actuator/health
+        port: 8081
+      initialDelaySeconds: 60
+      periodSeconds: 30
+
+    readinessProbe:
+      httpGet:
+        path: /actuator/health
+        port: 8081
+      initialDelaySeconds: 30
+      periodSeconds: 10
+
+    # Resource limits
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+    # Environment variables
+    env:
+      - name: SPRING_APPLICATION_NAME
+        value: "hello-service"
+      - name: SERVER_PORT
+        value: "8081"
+      - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        valueFrom:
+          configMapKeyRef:
+            name: team-sigma-config
+            key: EUREKA_URL
+
+    # Init containers
+    initContainers:
+      - name: wait-for-eureka
+        image: busybox:1.35
+        command:
+          - "sh"
+          - "-c"
+          - "until nc -z eureka 8761; do echo waiting for eureka; sleep 2; done;"
+
+  # Eureka Service Discovery
+  eureka:
+    enabled: true
+    name: eureka
+    component: service-discovery
+    image: eureka
+    replicas: 1
+    port: 8761
+    containerPort: 8761
+    protocol: TCP
+    serviceType: ClusterIP
+
+    # Health checks
+    livenessProbe:
+      httpGet:
+        path: /actuator/health
+        port: 8761
+      initialDelaySeconds: 60
+      periodSeconds: 30
+
+    readinessProbe:
+      httpGet:
+        path: /actuator/health
+        port: 8761
+      initialDelaySeconds: 30
+      periodSeconds: 10
+
+    # Resource limits
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+    # Environment variables
+    env:
+      - name: SPRING_APPLICATION_NAME
+        value: "eureka"
+      - name: SERVER_PORT
+        value: "8761"
+      - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
+        value: "false"
+      - name: EUREKA_CLIENT_FETCH_REGISTRY
+        value: "false"
+
+    # Init containers
+    initContainers: []

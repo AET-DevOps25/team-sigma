@@ -1,0 +1,45 @@
+# Development environment overrides
+global:
+  imageTag: dev
+
+# Enable NodePort services for easy local development access
+nodePort:
+  enabled: true
+
+# Reduced resource requirements for local development
+services:
+  client:
+    resources:
+      requests:
+        memory: "32Mi"
+        cpu: "25m"
+      limits:
+        memory: "64Mi"
+        cpu: "50m"
+
+  api-gateway:
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "125m"
+      limits:
+        memory: "512Mi"
+        cpu: "250m"
+
+  hello-service:
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "125m"
+      limits:
+        memory: "512Mi"
+        cpu: "250m"
+
+  eureka:
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "125m"
+      limits:
+        memory: "512Mi"
+        cpu: "250m"

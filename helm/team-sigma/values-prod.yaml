@@ -1,0 +1,60 @@
+# Production environment overrides
+global:
+  imageTag: stable
+
+# Disable NodePort services in production
+nodePort:
+  enabled: false
+
+# Higher resource requirements for production
+services:
+  client:
+    replicas: 3
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+  api-gateway:
+    replicas: 3
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+
+  hello-service:
+    replicas: 3
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+
+  eureka:
+    replicas: 2
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+
+# Production ingress with TLS
+ingress:
+  host: team-sigma.prod.example.com
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  tls:
+    - secretName: team-sigma-tls
+      hosts:
+        - team-sigma.prod.example.com

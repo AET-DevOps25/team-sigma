@@ -1,0 +1,95 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: team-sigma-ingress
+  namespace: team-sigma
+  labels:
+    app: team-sigma
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: team-sigma.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+          - path: /eureka
+            pathType: Prefix
+            backend:
+              service:
+                name: eureka
+                port:
+                  number: 8761
+---
+# Alternative: NodePort services for direct access (similar to docker-compose port mapping)
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-nodeport
+  namespace: team-sigma
+  labels:
+    app: client
+    component: frontend
+spec:
+  selector:
+    app: client
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30000
+      protocol: TCP
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-nodeport
+  namespace: team-sigma
+  labels:
+    app: api-gateway
+    component: gateway
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+      protocol: TCP
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-nodeport
+  namespace: team-sigma
+  labels:
+    app: eureka
+    component: service-discovery
+spec:
+  selector:
+    app: eureka
+  ports:
+    - name: http
+      port: 8761
+      targetPort: 8761
+      nodePort: 30761
+      protocol: TCP
+  type: NodePort

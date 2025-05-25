@@ -1,0 +1,39 @@
+1. Get the application URLs by running these commands:
+
+{{- if .Values.ingress.enabled }}
+  Ingress is enabled. You can access the services at:
+  http://{{ .Values.ingress.host }}
+  
+  Services available:
+  - Frontend (Client): http://{{ .Values.ingress.host }}/
+  - API Gateway: http://{{ .Values.ingress.host }}/api
+  - Eureka Dashboard: http://{{ .Values.ingress.host }}/eureka
+{{- end }}
+
+{{- if .Values.nodePort.enabled }}
+  NodePort services are enabled for direct access:
+  {{- range $serviceName, $nodePortConfig := .Values.nodePort.services }}
+  {{- $service := index $.Values.services $serviceName }}
+  {{- if $service.enabled }}
+  - {{ $service.name | title }}: http://localhost:{{ $nodePortConfig.nodePort }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+
+2. To check the status of your pods:
+   kubectl get pods -n {{ .Values.global.namespace }}
+
+3. To view the logs of a specific service:
+   kubectl logs -f deployment/<service-name> -n {{ .Values.global.namespace }}
+
+4. To port-forward to a service locally:
+   kubectl port-forward svc/<service-name> <local-port>:<service-port> -n {{ .Values.global.namespace }}
+
+Services deployed:
+{{- range $serviceName, $service := .Values.services }}
+{{- if $service.enabled }}
+- {{ $service.name }} ({{ $service.component }}) - Port {{ $service.port }}
+{{- end }}
+{{- end }}
+
+Happy coding with Team Sigma! 🚀 

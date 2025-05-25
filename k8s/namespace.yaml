@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-sigma
+  labels:
+    app.kubernetes.io/name: team-sigma
+    app.kubernetes.io/version: "1.0.0"

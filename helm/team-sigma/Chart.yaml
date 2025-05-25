@@ -1,0 +1,17 @@
+apiVersion: v2
+name: team-sigma
+description: A comprehensive Helm chart for the Team Sigma microservices architecture
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - microservices
+  - spring-boot
+  - eureka
+  - api-gateway
+home: https://github.com/team-sigma/team-sigma
+sources:
+  - https://github.com/team-sigma/team-sigma
+maintainers:
+  - name: Team Sigma
+    email: team-sigma@example.com

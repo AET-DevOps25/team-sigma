@@ -9,7 +9,7 @@ set -e
 
 ENV=${1:-default}
 RELEASE_NAME=${2:-team-sigma}
-CHART_PATH="."
+CHART_PATH="team-sigma"
 NAMESPACE="team-sigma"
 
 echo "🚀 Deploying Team Sigma with Helm..."

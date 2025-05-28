@@ -1,3 +1,6 @@
+{{- range $serviceName, $service := .Values.services }}
+{{- if $service.enabled }}
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,3 +16,6 @@ spec:
       name: http
   selector:
     {{- include "team-sigma.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}
+

@@ -32,7 +32,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [eureka, api-gateway, hello-service]
+        service: [eureka, api-gateway, hello-service, document]
         include:
           - service: eureka
             working-directory: ./server/eureka
@@ -40,6 +40,8 @@ jobs:
             working-directory: ./server/api-gateway
           - service: hello-service
             working-directory: ./server/hello-service
+          - service: document
+            working-directory: ./server/document
 
     steps:
       - name: Checkout code

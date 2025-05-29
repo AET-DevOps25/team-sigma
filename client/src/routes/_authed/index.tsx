@@ -1,84 +1,67 @@
+import { useEffect, useRef, useState } from "react";
+import { SidebarProvider } from "../../components/ui/sidebar";
+import ContentArea from "../../components/FileManager/ContentArea";
+import { CreateOrganization } from "@clerk/clerk-react";
 import { createFileRoute } from "@tanstack/react-router";
-import { SignOutButton, useUser } from "@clerk/clerk-react";
+import OrganizationOverview from "../../components/FileManager/OrganizationOverview";
 
 export const Route = createFileRoute("/_authed/")({
   component: Index,
 });
 
 function Index() {
-  const { user, isLoaded } = useUser();
+  const [showCreateOrgDialog, setShowCreateOrgDialog] = useState(false);
+  const [selectedOrganisationId, setSelectedOrganisationId] = useState<string | null>(null);
+  const [selectedOrganisationName, setSelectedOrganisationName] = useState<string>('');
 
-  if (!isLoaded) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
+        setShowCreateOrgDialog(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowCreateOrgDialog(false);
+      }
+    }
+
+    if (showCreateOrgDialog) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showCreateOrgDialog]);
 
   return (
-    <div className="space-y-6 p-4">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Protected Page</h1>
-        <p className="mt-2 text-lg text-gray-600">
-          This page is only accessible to authenticated users.
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-xl font-semibold text-gray-800">
-          Your Profile Information
-        </h2>
-        <div className="space-y-3">
-          <div>
-            <span className="font-medium text-gray-700">User ID:</span>
-            <span className="ml-2 text-gray-600">{user?.id}</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Email:</span>
-            <span className="ml-2 text-gray-600">
-              {user?.emailAddresses[0]?.emailAddress}
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">First Name:</span>
-            <span className="ml-2 text-gray-600">
-              {user?.firstName || "Not provided"}
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Last Name:</span>
-            <span className="ml-2 text-gray-600">
-              {user?.lastName || "Not provided"}
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Created:</span>
-            <span className="ml-2 text-gray-600">
-              {user?.createdAt
-                ? new Date(user.createdAt).toLocaleDateString()
-                : "Unknown"}
-            </span>
+    <SidebarProvider>
+      {showCreateOrgDialog && (
+        <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+          <div ref={dialogRef}>
+            <CreateOrganization />
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
-        <h3 className="mb-2 text-lg font-semibold text-blue-800">
-          🎉 Authentication Success!
-        </h3>
-        <p className="text-blue-700">
-          You are successfully authenticated and can access this protected
-          content. Try signing out and navigating back to this page to see the
-          redirect in action.
-        </p>
+      <div className="min-h-screen flex w-full bg-gray-50">
+        <OrganizationOverview
+          showCreateOrgDialog={showCreateOrgDialog}
+          setShowCreateOrgDialog={setShowCreateOrgDialog}
+          selectedOrganisationId={selectedOrganisationId}
+          setSelectedOrganisation={(id, name) => {
+            setSelectedOrganisationId(id);
+            setSelectedOrganisationName(name);
+          }}
+        />
+        <ContentArea organisation={selectedOrganisationName ?? ''} />
       </div>
-
-      <SignOutButton>
-        <button className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700">
-          Sign Out
-        </button>
-      </SignOutButton>
-    </div>
+    </SidebarProvider>
   );
 }

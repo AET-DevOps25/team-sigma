@@ -54,6 +54,7 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
+          tags: latest
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max

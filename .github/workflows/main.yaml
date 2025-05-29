@@ -8,7 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -54,7 +53,7 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:latest
+          tags: team-sigma/${{ matrix.service }}:latest
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max

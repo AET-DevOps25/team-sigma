@@ -11,8 +11,6 @@ export const Route = createFileRoute("/_authed/")({
 
 function Index() {
   const [showCreateOrgDialog, setShowCreateOrgDialog] = useState(false);
-  const [selectedOrganisationId, setSelectedOrganisationId] = useState<string | null>(null);
-  const [selectedOrganisationName, setSelectedOrganisationName] = useState<string>('');
 
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -51,16 +49,8 @@ function Index() {
       )}
 
       <div className="min-h-screen flex w-full bg-gray-50">
-        <OrganizationOverview
-          showCreateOrgDialog={showCreateOrgDialog}
-          setShowCreateOrgDialog={setShowCreateOrgDialog}
-          selectedOrganisationId={selectedOrganisationId}
-          setSelectedOrganisation={(id, name) => {
-            setSelectedOrganisationId(id);
-            setSelectedOrganisationName(name);
-          }}
-        />
-        <ContentArea organisation={selectedOrganisationName ?? ''} />
+        <OrganizationOverview/>
+        <ContentArea />
       </div>
     </SidebarProvider>
   );

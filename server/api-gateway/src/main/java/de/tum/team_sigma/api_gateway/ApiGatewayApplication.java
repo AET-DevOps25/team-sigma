@@ -22,8 +22,17 @@ public class ApiGatewayApplication {
     public RouterFunction<ServerResponse> helloServiceRouteConfig() {
         return route("hello-service")
                 .route(path("/api/hello/**"), http())
-                .before(stripPrefix(1))
+                .before(stripPrefix(2))
                 .filter(lb("hello-service"))
+                .build();
+    }
+
+    @Bean
+    public RouterFunction<ServerResponse> documentServiceRouteConfig() {
+        return route("document-service")
+                .route(path("/api/document/**"), http())
+                .before(stripPrefix(2))
+                .filter(lb("document-service"))
                 .build();
     }
 }

@@ -1,3 +1,7 @@
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:api-gateway}
+
 server:
   port: ${SERVER_PORT:8080}
 

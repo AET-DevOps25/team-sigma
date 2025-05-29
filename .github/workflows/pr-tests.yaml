@@ -18,9 +18,11 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
+        working-directory: ./client
         run: bun install --frozen-lockfile
 
       - name: Build with Bun
+        working-directory: ./client
         run: bun run build
 
   build-server:
@@ -51,8 +53,6 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v4
-        with:
-          gradle-version: "8.13"
 
       - name: Build with Gradle
         working-directory: "${{ matrix.working-directory }}"

@@ -1,21 +1,11 @@
-{{- range $serviceName, $service := .Values.services }}
-{{- if $service.enabled }}
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "team-sigma.fullname" . }}
-  labels:
-    {{- include "team-sigma.labels" . | nindent 4 }}
+  name: { { .Values.services.genai } }
 spec:
-  type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
   selector:
-    {{- include "team-sigma.selectorLabels" . | nindent 4 }}
-{{- end }}
-{{- end }}
-
+    app: genai
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: genai-api

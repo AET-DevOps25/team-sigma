@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --build local -v -f ../docker-compose.yaml
+    kompose.version: 1.36.0 (HEAD)
+  labels:
+    io.kompose.service: client
+  name: client
+spec:
+  ports:
+    - name: "3000"
+      port: 3000
+      targetPort: 80
+  selector:
+    io.kompose.service: client

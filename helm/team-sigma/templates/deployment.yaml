@@ -1,25 +1,33 @@
+{{- range .Values.services }}
+{{- if and .enabled (ne .type "database") }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: server
+  name: {{ .name }}
 spec:
-  replicas: "{{ .Values.replicaCount.server }}"
+  replicas: {{ .replicas }}
   selector:
     matchLabels:
-      app: server
+      app: {{ .name }}
   template:
     metadata:
       labels:
-        app: server
+        app: {{ .name }}
     spec:
       containers:
-        - name: server
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: Always
+        - name: {{ .name }}
+          image: "{{ $.Values.image.repository }}/{{ .name }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
           ports:
-            - containerPort: "{{ .Values.ports.server }}"
-              name: server-api
+            - containerPort: {{ .port }}
+              name: {{ .name }}-port
           resources:
+            requests:
+              cpu: {{ .resources.requests.cpu }}
+              memory: {{ .resources.requests.memory }}
             limits:
-              cpu: "{{ .Values.resources.limits.cpu }}"
-              memory: "{{ .Values.resources.limits.memory }}"
+              cpu: {{ .resources.limits.cpu }}
+              memory: {{ .resources.limits.memory }}
+{{- end }}
+{{- end }}

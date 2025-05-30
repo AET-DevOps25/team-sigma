@@ -1,7 +1,11 @@
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:hello-service}
+
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://eureka:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://eureka:8761/eureka/}

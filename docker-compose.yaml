@@ -39,6 +39,54 @@ services:
     networks:
       - spring-cloud-network
 
+  document-service:
+    build:
+      context: ./server/document
+    environment:
+      - SPRING_APPLICATION_NAME=document-service
+      - SERVER_PORT=8080
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - WEAVIATE_URL=http://weaviate:8080
+      - MINIO_URL=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      - eureka
+      - weaviate
+      - minio
+    networks:
+      - spring-cloud-network
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730
+    ports:
+      - "8090:8080"
+    environment:
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+      - ENABLE_MODULES=text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai
+      - CLUSTER_HOSTNAME=node1
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - spring-cloud-network
+
+  minio:
+    image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - spring-cloud-network
+
   client:
     build:
       context: ./client
@@ -53,3 +101,7 @@ networks:
 
   spring-cloud-network:
     driver: bridge
+
+volumes:
+  weaviate_data:
+  minio_data:

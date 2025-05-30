@@ -32,7 +32,7 @@ services:
       context: ./server/hello-service
     environment:
       - SPRING_APPLICATION_NAME=hello-service
-      - SERVER_PORT=8081
+      - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
     depends_on:
       - eureka
@@ -41,7 +41,7 @@ services:
 
   document-service:
     build:
-      context: ./server/document
+      context: ./server/document-service
     environment:
       - SPRING_APPLICATION_NAME=document-service
       - SERVER_PORT=8080
@@ -92,6 +92,8 @@ services:
       context: ./client
     ports:
       - "3000:80"
+    depends_on:
+      - api-gateway
     networks:
       - client-network
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import { Sidebar, SidebarContent, SidebarHeader } from '../ui/sidebar';
-import { OrganizationSwitcher } from '@clerk/clerk-react';
+import React from "react";
+import { Sidebar, SidebarContent, SidebarHeader } from "../ui/sidebar";
+import { OrganizationSwitcher } from "@clerk/clerk-react";
 
 const OrganizationOverview: React.FC = () => {
   return (
@@ -15,13 +15,13 @@ const OrganizationOverview: React.FC = () => {
           hidePersonal
           appearance={{
             elements: {
-              rootBox: 'w-full',
+              rootBox: "w-full",
               organizationSwitcherTrigger:
-                'w-full flex items-center gap-2 py-2 px-3 text-sm rounded-md border border-gray-300 hover:bg-gray-100',
+                "w-full flex items-center gap-2 py-2 px-3 text-sm rounded-md border border-gray-300 hover:bg-gray-100",
               organizationPreviewText:
-                'truncate max-w-[120px] overflow-hidden text-sm font-medium',
-              organizationImage: 'w-5 h-5',
-              organizationSwitcherPopoverCard: 'w-72',
+                "truncate max-w-[120px] overflow-hidden text-sm font-medium",
+              organizationImage: "w-5 h-5",
+              organizationSwitcherPopoverCard: "w-72",
             },
           }}
         />

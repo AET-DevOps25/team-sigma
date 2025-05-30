@@ -16,7 +16,10 @@ function Index() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
+      if (
+        dialogRef.current &&
+        !dialogRef.current.contains(event.target as Node)
+      ) {
         setShowCreateOrgDialog(false);
       }
     }
@@ -41,15 +44,15 @@ function Index() {
   return (
     <SidebarProvider>
       {showCreateOrgDialog && (
-        <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div ref={dialogRef}>
             <CreateOrganization />
           </div>
         </div>
       )}
 
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <OrganizationOverview/>
+      <div className="flex min-h-screen w-full bg-gray-50">
+        <OrganizationOverview />
         <ContentArea />
       </div>
     </SidebarProvider>

@@ -7,16 +7,13 @@ host: nemo.student.k8s.aet.cit.tum.de
 services:
   - name: client
     targetPort: 3000
-    external: true
+    path: /
   - name: api-gateway
     targetPort: 8080
-    external: true
+    path: /api
   - name: eureka
     targetPort: 8761
-    external: false
   - name: hello-service
     targetPort: 8080
-    external: false
   - name: document-service
     targetPort: 8080
-    external: false

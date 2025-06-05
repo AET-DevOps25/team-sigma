@@ -1,5 +1,5 @@
 {{- range .Values.services }}
-{{- if .external }}
+{{- if .path }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -10,7 +10,7 @@ spec:
   - host: {{ $.Values.host }}
     http:
       paths:
-      - path: /{{ .name }}
+      - path: {{ .path }}
         pathType: Prefix
         backend:
           service:

@@ -18,21 +18,21 @@ public class ApiGatewayApplication {
         SpringApplication.run(ApiGatewayApplication.class, args);
     }
 
-    @Bean
-    public RouterFunction<ServerResponse> helloServiceRouteConfig() {
-        return route("hello-service")
-                .route(path("/api/hello/**"), http())
+    private RouterFunction<ServerResponse> buildMicroserviceRoute(String serviceName) {
+        return route(serviceName + "-service")
+                .route(path("/api/" + serviceName + "/**"), http())
                 .before(stripPrefix(2))
-                .filter(lb("hello-service"))
+                .filter(lb(serviceName + "-service"))
                 .build();
     }
 
     @Bean
+    public RouterFunction<ServerResponse> helloServiceRouteConfig() {
+        return buildMicroserviceRoute("hello");
+    }
+
+    @Bean
     public RouterFunction<ServerResponse> documentServiceRouteConfig() {
-        return route("document-service")
-                .route(path("/api/document/**"), http())
-                .before(stripPrefix(2))
-                .filter(lb("document-service"))
-                .build();
+        return buildMicroserviceRoute("document");
     }
 }

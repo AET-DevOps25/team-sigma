@@ -32,7 +32,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [eureka, api-gateway, hello-service, document]
+        service: [eureka, api-gateway, hello-service, document-service]
         include:
           - service: eureka
             working-directory: ./server/eureka
@@ -40,8 +40,8 @@ jobs:
             working-directory: ./server/api-gateway
           - service: hello-service
             working-directory: ./server/hello-service
-          - service: document
-            working-directory: ./server/document
+          - service: document-service
+            working-directory: ./server/document-service
 
     steps:
       - name: Checkout code
@@ -56,7 +56,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.13"
+          gradle-version: "8.14"
 
       - name: Build with Gradle
         working-directory: "${{ matrix.working-directory }}"

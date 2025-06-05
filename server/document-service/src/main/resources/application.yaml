@@ -14,7 +14,7 @@ eureka:
 weaviate:
   url: ${WEAVIATE_URL:http://localhost:8080}
 
-# MinIO configuration  
+# MinIO configuration
 minio:
   url: ${MINIO_URL:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}

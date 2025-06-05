@@ -7,12 +7,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class DocumentController {
 
-    @GetMapping("/document")
+    @GetMapping("/")
     public String document() {
         return "Document Service is running!";
     }
 
-    @GetMapping("/document/{id}")
+    @GetMapping("/{id}")
     public String document(@PathVariable String id) {
         return "Document " + id + " retrieved!";
     }

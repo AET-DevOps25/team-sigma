@@ -55,6 +55,6 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ env.REGISTRY }}/aet-devops25/team-sigma/${{ matrix.service }}:latest
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max

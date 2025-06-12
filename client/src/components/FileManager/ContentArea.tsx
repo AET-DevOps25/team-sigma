@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { OrganizationProfile, useOrganization } from "@clerk/clerk-react";
 import { mockSlideDecks } from "../../models";
 import type { SlideDeck } from "../../models";
+import { Link } from "@tanstack/react-router";
 
 const ContentArea: React.FC = () => {
   const { membership, organization } = useOrganization();
@@ -77,7 +78,7 @@ const ContentArea: React.FC = () => {
                 {slideDecks.map((deck) => (
                   <div 
                     key={deck.id} 
-                    className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden flex flex-col"
+                    className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden flex flex-col cursor-pointer"
                   >
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex items-center mb-3">
@@ -98,9 +99,11 @@ const ContentArea: React.FC = () => {
                       </div>
                     </div>
                     <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                      <Button variant="ghost" size="sm" className="text-blue-600 w-full">
-                        View
-                      </Button>
+                      <Link to="/slide/$slideId" params={{ slideId: deck.id }}>
+                        <Button variant="ghost" size="sm" className="text-blue-600 w-full">
+                          View
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}

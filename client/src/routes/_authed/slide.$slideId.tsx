@@ -106,7 +106,6 @@ function SlideView() {
             </Document>
           </div>
           
-          {/* PDF Navigation */}
           {numPages > 0 && (
             <div className="flex items-center justify-center gap-4 p-4 border-t border-gray-200">
               <Button
@@ -132,7 +131,7 @@ function SlideView() {
           )}
         </div>
 
-        <div className="w-96 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
+        <div className="w-[480px] bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
           <div className="border-b border-gray-200 rounded-t-lg">
             <nav className="flex">
               <button

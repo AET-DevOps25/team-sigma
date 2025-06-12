@@ -7,7 +7,7 @@ import type { SlideDeck } from "../../models";
 import { Link } from "@tanstack/react-router";
 
 const ContentArea: React.FC = () => {
-  const { membership, organization } = useOrganization();
+  const { organization } = useOrganization();
   const [showOrgEditPanel, setShowOrgEditPanel] = useState(false);
   const [slideDecks, setSlideDecks] = useState<SlideDeck[]>([]);
 

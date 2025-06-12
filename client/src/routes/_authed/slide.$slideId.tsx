@@ -90,13 +90,13 @@ function SlideView() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Side - PDF Viewer */}
-        <div className="flex-1 bg-white border-r border-gray-200">
-          <div className="h-full flex items-center justify-center">
+        <div className="flex-1 bg-white border-r border-gray-200 p-6">
+          <div className="h-full bg-gray-100 rounded-lg shadow-inner">
             <iframe
               src="/mock_slides/mock1.pdf"
               width="100%"
               height="100%"
-              className="border-0"
+              className="border-0 rounded-lg"
               title={slideDeck.title}
             />
           </div>

@@ -56,7 +56,7 @@ function SlideView() {
       case "quiz":
         return <QuizTab />;
       case "chat":
-        return <ChatTab />;
+        return <ChatTab slideDeck={slideDeck} />;
       default:
         return null;
     }

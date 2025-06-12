@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { ArrowLeft, FileText, MessageSquare, HelpCircle, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { Document, Page, pdfjs } from 'react-pdf';

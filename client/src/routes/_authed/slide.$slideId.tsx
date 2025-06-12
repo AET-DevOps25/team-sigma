@@ -105,11 +105,9 @@ function SlideView() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Side - PDF Viewer */}
-        <div className="flex-1 bg-white border-r border-gray-200 p-6 flex flex-col">
-          <div className="flex-1 bg-gray-100 rounded-lg shadow-inner flex items-center justify-center overflow-hidden">
+      <div className="flex flex-1 overflow-hidden p-6 gap-6">
+        <div className="flex-1 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
+          <div className="flex-1 bg-gray-100 rounded-lg shadow-inner flex items-center justify-center overflow-hidden m-4">
             <Document
               file="/mock_slides/mock1.pdf"
               onLoadSuccess={onDocumentLoadSuccess}
@@ -127,7 +125,7 @@ function SlideView() {
               <Page
                 pageNumber={pageNumber}
                 width={Math.min(800, window.innerWidth * 0.6)}
-                renderTextLayer={false}
+                renderTextLayer={true}
                 renderAnnotationLayer={false}
               />
             </Document>
@@ -135,7 +133,7 @@ function SlideView() {
           
           {/* PDF Navigation */}
           {numPages > 0 && (
-            <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center justify-center gap-4 p-4 border-t border-gray-200">
               <Button
                 variant="outline"
                 size="sm"
@@ -159,14 +157,12 @@ function SlideView() {
           )}
         </div>
 
-        {/* Right Side - Tabs */}
-        <div className="w-96 bg-white flex flex-col">
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
+        <div className="w-96 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
+          <div className="border-b border-gray-200 rounded-t-lg">
             <nav className="flex">
               <button
                 onClick={() => setActiveTab("summary")}
-                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors first:rounded-tl-lg ${
                   activeTab === "summary"
                     ? "border-blue-500 text-blue-600 bg-blue-50"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
@@ -188,7 +184,7 @@ function SlideView() {
               </button>
               <button
                 onClick={() => setActiveTab("chat")}
-                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors last:rounded-tr-lg ${
                   activeTab === "chat"
                     ? "border-blue-500 text-blue-600 bg-blue-50"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
@@ -201,7 +197,7 @@ function SlideView() {
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto rounded-b-lg">
             {renderTabContent()}
           </div>
         </div>

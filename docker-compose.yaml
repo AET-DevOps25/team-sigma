@@ -87,15 +87,15 @@ services:
     networks:
       - spring-cloud-network
 
-  client:
-    build:
-      context: ./client
-    ports:
-      - "3000:80"
-    depends_on:
-      - api-gateway
-    networks:
-      - client-network
+  # client:
+  #   build:
+  #     context: ./client
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - api-gateway
+  #   networks:
+  #     - client-network
 
 networks:
   client-network:

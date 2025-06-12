@@ -1,10 +1,9 @@
 import React, { useRef } from "react";
-import { OrganizationSwitcher, useOrganization } from "@clerk/clerk-react";
+import { OrganizationSwitcher } from "@clerk/clerk-react";
 import { Button } from "../ui/button";
 import { Upload } from "lucide-react";
 
 const AppHeader: React.FC = () => {
-  const { membership } = useOrganization();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

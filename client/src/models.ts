@@ -62,5 +62,13 @@ export const mockSlideDecks: SlideDeck[] = [
     thumbnailUrl: "https://via.placeholder.com/300x200?text=Cloud+Scaling",
     slideCount: 29,
     organizationId: "org_2"
-  }
+  },
+  {
+    id: "slide_11",
+    title: "Service Mesh with Istio",
+    file: "service_mesh_istio.pptx",
+    uploadedAt: "2024-01-08T11:30:00Z",
+    slideCount: 39,
+    organizationId: "org_1"
+  },
 ];

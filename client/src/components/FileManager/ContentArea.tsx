@@ -6,7 +6,7 @@ import { mockSlideDecks } from "../../models";
 import type { SlideDeck } from "../../models";
 
 const ContentArea: React.FC = () => {
-  const { membership } = useOrganization();
+  const { membership, organization } = useOrganization();
   const [showOrgEditPanel, setShowOrgEditPanel] = useState(false);
   const [slideDecks, setSlideDecks] = useState<SlideDeck[]>([]);
 
@@ -23,17 +23,20 @@ const ContentArea: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (membership?.organization.id) {
-      // Filter slide decks by organization ID
-      // In a real app, this would be an API call
-      const orgSlides = mockSlideDecks.filter(
-        deck => deck.organizationId === "org_1" // Using org_1 for demo purposes
-      );
+    if (organization?.id) {
+      // In a real app, we would fetch slides from an API using the organization ID
+      
+      // This is the filtering logic that would be used in a real app
+      // const orgSlides = mockSlideDecks.filter(deck => deck.organizationId === organization.id);
+      
+      // For now, show all slides for every organization
+      const orgSlides = mockSlideDecks;
+      
       setSlideDecks(orgSlides);
     } else {
       setSlideDecks([]);
     }
-  }, [membership?.organization.id]);
+  }, [organization?.id]);
 
   // Format date to relative time (e.g., "2 days ago")
   const formatRelativeTime = (dateString: string): string => {
@@ -65,9 +68,9 @@ const ContentArea: React.FC = () => {
       )}
 
       <div className="flex-1 bg-gray-50 p-6 h-full overflow-auto">
-        {membership?.organization.name ? (
+        {organization?.name ? (
           <div className="h-full">
-            <h2 className="text-xl font-semibold mb-6">{membership.organization.name} Materials</h2>
+            <h2 className="text-xl font-semibold mb-6">{organization.name} Materials</h2>
             
             {slideDecks.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

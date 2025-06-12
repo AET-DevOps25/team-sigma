@@ -27,7 +27,7 @@ public class DocumentController {
     
     @Autowired
     private DocumentService documentService;
-    
+
     @GetMapping("/")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Document Service is running!");
@@ -66,7 +66,7 @@ public class DocumentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<DocumentResponse> getDocumentById(@PathVariable Long id) {
         try {

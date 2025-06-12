@@ -32,8 +32,6 @@ const AppHeader: React.FC = () => {
       <div className="px-4 py-3 flex items-center justify-between">
         <OrganizationSwitcher
           hidePersonal
-          afterCreateOrganizationUrl="/dashboard"
-          afterSelectOrganizationUrl="/dashboard"
           appearance={{
             elements: {
               rootBox: "w-64",

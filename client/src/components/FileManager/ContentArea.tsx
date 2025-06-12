@@ -1,36 +1,26 @@
-import React, { useRef, useState } from "react";
-import { Upload, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { Button } from "../ui/button";
 import { OrganizationProfile, useOrganization } from "@clerk/clerk-react";
 
-const ContentArea: React.FC = ({}) => {
+const ContentArea: React.FC = () => {
   const { membership } = useOrganization();
-
   const [showOrgEditPanel, setShowOrgEditPanel] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      Array.from(files).forEach((file) => {
-        const fileItem = {
-          id: `file_${Date.now()}_${Math.random()}`,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          uploadDate: new Date().toISOString(),
-        };
-        // TODO: handle file upload logic
-        void fileItem;
-      });
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+  useEffect(() => {
+    const handleToggleOrgEdit = () => {
+      setShowOrgEditPanel(prev => !prev);
+    };
+
+    window.addEventListener('toggle-org-edit', handleToggleOrgEdit);
+    
+    return () => {
+      window.removeEventListener('toggle-org-edit', handleToggleOrgEdit);
+    };
+  }, []);
 
   return (
-    <div className="relative flex flex-1 flex-col">
+    <div className="relative flex flex-col w-full h-full">
       {/* Slide-down panel */}
       {showOrgEditPanel && (
         <div className="absolute top-0 right-0 left-0 z-50 border-b border-gray-200 bg-white p-6 shadow-lg">
@@ -44,38 +34,17 @@ const ContentArea: React.FC = ({}) => {
         </div>
       )}
 
-      <div className="border-b border-gray-200 bg-white p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {membership?.organization.name || "No lecture selected"}
-            </h1>
+      <div className="flex-1 bg-gray-50 p-6 h-full overflow-auto">
+        {membership?.organization.name ? (
+          <div className="rounded-lg bg-white p-6 shadow h-full">
+            <h2 className="mb-4 text-xl font-semibold">{membership.organization.name} Materials</h2>
+            <p className="text-gray-500">No materials uploaded yet.</p>
           </div>
-          <div className="flex gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-              accept=".pdf,.doc,.docx,.txt,.ppt,.pptx"
-            />
-            <Button onClick={() => setShowOrgEditPanel(true)}>
-              Edit lecture
-            </Button>
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Lectures
-            </Button>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-gray-400">Select a lecture to view its materials</p>
           </div>
-        </div>
-      </div>
-
-      <div className="flex-1 bg-gray-50 p-6">
-        {/* Lecture content goes here */}
+        )}
       </div>
     </div>
   );

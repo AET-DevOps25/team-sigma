@@ -3,7 +3,7 @@ import { SidebarProvider } from "../../components/ui/sidebar";
 import ContentArea from "../../components/FileManager/ContentArea";
 import { CreateOrganization } from "@clerk/clerk-react";
 import { createFileRoute } from "@tanstack/react-router";
-import OrganizationOverview from "../../components/FileManager/OrganizationOverview";
+import AppHeader from "../../components/FileManager/AppHeader";
 
 export const Route = createFileRoute("/_authed/")({
   component: Index,
@@ -51,9 +51,11 @@ function Index() {
         </div>
       )}
 
-      <div className="flex min-h-screen w-full bg-gray-50">
-        <OrganizationOverview />
-        <ContentArea />
+      <div className="flex flex-col h-screen w-full bg-gray-50">
+        <AppHeader />
+        <div className="flex flex-1 overflow-hidden">
+          <ContentArea />
+        </div>
       </div>
     </SidebarProvider>
   );

@@ -5,6 +5,9 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "../../components/ui/button";
 import { mockSlideDecks } from "../../models";
 import { Link } from "@tanstack/react-router";
+import SummaryTab from "../../components/SlideView/SummaryTab";
+import QuizTab from "../../components/SlideView/QuizTab";
+import ChatTab from "../../components/SlideView/ChatTab";
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -49,39 +52,11 @@ function SlideView() {
   const renderTabContent = () => {
     switch (activeTab) {
       case "summary":
-        return (
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <BookOpen className="h-5 w-5 mr-2" />
-              Summary
-            </h3>
-            <p className="text-gray-700 leading-relaxed">{slideDeck.summary}</p>
-          </div>
-        );
+        return <SummaryTab slideDeck={slideDeck} />;
       case "quiz":
-        return (
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <HelpCircle className="h-5 w-5 mr-2" />
-              Quiz
-            </h3>
-            <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No quiz questions created yet</p>
-            </div>
-          </div>
-        );
+        return <QuizTab />;
       case "chat":
-        return (
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <MessageSquare className="h-5 w-5 mr-2" />
-              Chat
-            </h3>
-            <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">TODO</p>
-            </div>
-          </div>
-        );
+        return <ChatTab />;
       default:
         return null;
     }

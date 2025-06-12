@@ -1,9 +1,13 @@
 import React, { useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { ArrowLeft, FileText, MessageSquare, HelpCircle, BookOpen } from "lucide-react";
+import { ArrowLeft, FileText, MessageSquare, HelpCircle, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "../../components/ui/button";
 import { mockSlideDecks } from "../../models";
 import { Link } from "@tanstack/react-router";
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export const Route = createFileRoute("/_authed/slide/$slideId")({
   component: SlideView,
@@ -12,6 +16,8 @@ export const Route = createFileRoute("/_authed/slide/$slideId")({
 function SlideView() {
   const { slideId } = useParams({ from: "/_authed/slide/$slideId" });
   const [activeTab, setActiveTab] = useState<"summary" | "quiz" | "chat">("summary");
+  const [numPages, setNumPages] = useState<number>(0);
+  const [pageNumber, setPageNumber] = useState<number>(1);
 
   const slideDeck = mockSlideDecks.find(deck => deck.id === slideId);
 
@@ -27,6 +33,18 @@ function SlideView() {
       </div>
     );
   }
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+  };
+
+  const goToPrevPage = () => {
+    setPageNumber(page => Math.max(1, page - 1));
+  };
+
+  const goToNextPage = () => {
+    setPageNumber(page => Math.min(numPages, page + 1));
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -90,16 +108,55 @@ function SlideView() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Side - PDF Viewer */}
-        <div className="flex-1 bg-white border-r border-gray-200 p-6">
-          <div className="h-full bg-gray-100 rounded-lg shadow-inner">
-            <iframe
-              src="/mock_slides/mock1.pdf"
-              width="100%"
-              height="100%"
-              className="border-0 rounded-lg"
-              title={slideDeck.title}
-            />
+        <div className="flex-1 bg-white border-r border-gray-200 p-6 flex flex-col">
+          <div className="flex-1 bg-gray-100 rounded-lg shadow-inner flex items-center justify-center overflow-hidden">
+            <Document
+              file="/mock_slides/mock1.pdf"
+              onLoadSuccess={onDocumentLoadSuccess}
+              loading={
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500">Loading PDF...</p>
+                </div>
+              }
+              error={
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-red-500">Failed to load PDF</p>
+                </div>
+              }
+            >
+              <Page
+                pageNumber={pageNumber}
+                width={Math.min(800, window.innerWidth * 0.6)}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+              />
+            </Document>
           </div>
+          
+          {/* PDF Navigation */}
+          {numPages > 0 && (
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPrevPage}
+                disabled={pageNumber <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-gray-600">
+                Page {pageNumber} of {numPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={pageNumber >= numPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Right Side - Tabs */}

@@ -37,6 +37,16 @@ dependencies {
 	// H2 database for local development/testing
 	runtimeOnly 'com.h2database:h2'
 	
+	// PostgreSQL driver for production
+	runtimeOnly 'org.postgresql:postgresql:42.7.3'
+	
+	// Weaviate Java client
+	implementation 'io.weaviate:client:5.2.1'
+	
+	// LangChain4j core and in-process embedding model
+	implementation 'dev.langchain4j:langchain4j-core:1.0.1'
+	implementation 'dev.langchain4j:langchain4j-embeddings-all-minilm-l6-v2:1.0.1-beta6'
+	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

@@ -10,6 +10,9 @@ import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.weaviate.client.WeaviateClient;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.data.embedding.Embedding;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +21,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.stream.Collectors;
 
 import java.io.InputStream;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -37,6 +40,12 @@ public class DocumentService {
     
     @Autowired
     private MinioClient minioClient;
+    
+    @Autowired
+    private EmbeddingModel embeddingModel;
+    
+    @Autowired
+    private WeaviateClient weaviateClient;
     
     @Value("${minio.bucket-name}")
     private String bucketName;
@@ -97,10 +106,27 @@ public class DocumentService {
             for (int i = 0; i < chunks.length; i++) {
                 String chunkText = chunks[i].trim();
                 if (!chunkText.isEmpty()) {
+                    // 1. Create embedding vector using LangChain4j
+                    Embedding embedding = embeddingModel.embed(chunkText);
+                    float[] vector = embedding.vector();
+
+                    // 2. Store vector + metadata in Weaviate and retrieve object ID
+                    String uuid = UUID.randomUUID().toString();
+                    weaviateClient.data().creator()
+                        .withClassName("DocumentChunk")
+                        .withId(uuid)
+                        .withProperties(Map.of(
+                            "text", chunkText,
+                            "documentId", document.getId(),
+                            "chunkIndex", i
+                        ))
+                        .withVector(vector)
+                        .run();
+
                     DocumentChunk chunk = new DocumentChunk(
-                        document, 
-                        "chunk_" + document.getId() + "_" + i, // Simple chunk ID
-                        i, 
+                        document,
+                        uuid,
+                        i,
                         chunkText
                     );
                     documentChunks.add(chunk);
@@ -218,21 +244,19 @@ public class DocumentService {
     @Transactional(readOnly = true)
     public List<DocumentResponse> searchSimilarDocuments(String query, int maxResults) {
         try {
-            // Simple text-based search in chunks
+            // Simple text-based search in chunks (will be replaced with vector search later)
             List<DocumentChunk> matchingChunks = documentChunkRepository.findAll().stream()
-                .filter(chunk -> chunk.getChunkText().toLowerCase().contains(query.toLowerCase()))
-                .limit(maxResults)
-                .collect(Collectors.toList());
-            
-            // Get unique documents
+                    .filter(chunk -> chunk.getChunkText().toLowerCase().contains(query.toLowerCase()))
+                    .limit(maxResults)
+                    .collect(Collectors.toList());
+
             Set<Long> documentIds = matchingChunks.stream()
-                .map(chunk -> chunk.getDocument().getId())
-                .collect(Collectors.toSet());
-            
+                    .map(chunk -> chunk.getDocument().getId())
+                    .collect(Collectors.toSet());
+
             return documentIds.stream()
-                .map(this::getDocumentById)
-                .collect(Collectors.toList());
-                
+                    .map(this::getDocumentById)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             logger.error("Failed to search similar documents for query: {}", query, e);
             throw new RuntimeException("Failed to search similar documents", e);

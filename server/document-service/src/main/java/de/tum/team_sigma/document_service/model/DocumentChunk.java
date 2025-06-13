@@ -19,7 +19,7 @@ public class DocumentChunk {
     
     @NotBlank(message = "Weaviate ID is required")
     @Column(name = "weaviate_id", nullable = false, unique = true)
-    private String weavateId;
+    private String weaviateId;
     
     @NotNull(message = "Chunk index is required")
     @Column(name = "chunk_index", nullable = false)
@@ -35,10 +35,10 @@ public class DocumentChunk {
         this.createdAt = LocalDateTime.now();
     }
     
-    public DocumentChunk(Document document, String weavateId, Integer chunkIndex, String chunkText) {
+    public DocumentChunk(Document document, String weaviateId, Integer chunkIndex, String chunkText) {
         this();
         this.document = document;
-        this.weavateId = weavateId;
+        this.weaviateId = weaviateId;
         this.chunkIndex = chunkIndex;
         this.chunkText = chunkText;
     }
@@ -60,12 +60,12 @@ public class DocumentChunk {
         this.document = document;
     }
     
-    public String getWeavateId() {
-        return weavateId;
+    public String getWeaviateId() {
+        return weaviateId;
     }
     
-    public void setWeavateId(String weavateId) {
-        this.weavateId = weavateId;
+    public void setWeaviateId(String weaviateId) {
+        this.weaviateId = weaviateId;
     }
     
     public Integer getChunkIndex() {

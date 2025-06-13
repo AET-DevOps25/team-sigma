@@ -12,7 +12,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
     
     List<DocumentChunk> findByDocumentIdOrderByChunkIndex(Long documentId);
     
-    Optional<DocumentChunk> findByWeavateId(String weavateId);
+    Optional<DocumentChunk> findByWeaviateId(String weaviateId);
     
     void deleteByDocumentId(Long documentId);
     

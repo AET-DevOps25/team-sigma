@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as AuthedImport } from './routes/_authed'
 import { Route as LoginIndexImport } from './routes/login/index'
 import { Route as AuthedIndexImport } from './routes/_authed/index'
+import { Route as AuthedDocumentIndexImport } from './routes/_authed/document/index'
 
 // Create/Update Routes
 
@@ -31,6 +32,12 @@ const LoginIndexRoute = LoginIndexImport.update({
 const AuthedIndexRoute = AuthedIndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+
+const AuthedDocumentIndexRoute = AuthedDocumentIndexImport.update({
+  id: '/document/',
+  path: '/document/',
   getParentRoute: () => AuthedRoute,
 } as any)
 
@@ -59,6 +66,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexImport
       parentRoute: typeof rootRoute
     }
+    '/_authed/document/': {
+      id: '/_authed/document/'
+      path: '/document'
+      fullPath: '/document'
+      preLoaderRoute: typeof AuthedDocumentIndexImport
+      parentRoute: typeof AuthedImport
+    }
   }
 }
 
@@ -66,10 +80,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedDocumentIndexRoute: typeof AuthedDocumentIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedDocumentIndexRoute: AuthedDocumentIndexRoute,
 }
 
 const AuthedRouteWithChildren =
@@ -79,11 +95,13 @@ export interface FileRoutesByFullPath {
   '': typeof AuthedRouteWithChildren
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/document': typeof AuthedDocumentIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/document': typeof AuthedDocumentIndexRoute
 }
 
 export interface FileRoutesById {
@@ -91,14 +109,15 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/_authed/': typeof AuthedIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/_authed/document/': typeof AuthedDocumentIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '' | '/' | '/login'
+  fullPaths: '' | '/' | '/login' | '/document'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login'
-  id: '__root__' | '/_authed' | '/_authed/' | '/login/'
+  to: '/' | '/login' | '/document'
+  id: '__root__' | '/_authed' | '/_authed/' | '/login/' | '/_authed/document/'
   fileRoutesById: FileRoutesById
 }
 
@@ -129,7 +148,8 @@ export const routeTree = rootRoute
     "/_authed": {
       "filePath": "_authed.tsx",
       "children": [
-        "/_authed/"
+        "/_authed/",
+        "/_authed/document/"
       ]
     },
     "/_authed/": {
@@ -138,6 +158,10 @@ export const routeTree = rootRoute
     },
     "/login/": {
       "filePath": "login/index.tsx"
+    },
+    "/_authed/document/": {
+      "filePath": "_authed/document/index.tsx",
+      "parent": "/_authed"
     }
   }
 }

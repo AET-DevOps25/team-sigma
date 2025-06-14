@@ -3,6 +3,13 @@ package de.tum.team_sigma.document_service.controller;
 import de.tum.team_sigma.document_service.dto.DocumentResponse;
 import de.tum.team_sigma.document_service.dto.DocumentUploadRequest;
 import de.tum.team_sigma.document_service.service.DocumentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +28,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/documents")
 @CrossOrigin(origins = "*")
+@Tag(name = "Document Management", description = "API for document upload, management, and retrieval")
 public class DocumentController {
     
     private static final Logger logger = LoggerFactory.getLogger(DocumentController.class);
@@ -29,14 +37,26 @@ public class DocumentController {
     private DocumentService documentService;
 
     @GetMapping("/")
+    @Operation(summary = "Health check", description = "Check if the document service is running")
+    @ApiResponse(responseCode = "200", description = "Service is running")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Document Service is running!");
     }
     
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload a document", description = "Upload a new document with optional metadata")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Document uploaded successfully",
+                    content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid file or request"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<DocumentResponse> uploadDocument(
+            @Parameter(description = "File to upload", required = true)
             @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Document name", required = true)
             @RequestParam("name") String name,
+            @Parameter(description = "Document description")
             @RequestParam(value = "description", required = false) String description) {
         
         try {
@@ -57,6 +77,12 @@ public class DocumentController {
     }
     
     @GetMapping
+    @Operation(summary = "Get all documents", description = "Retrieve a list of all documents")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Documents retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
         try {
             List<DocumentResponse> documents = documentService.getAllDocuments();
@@ -68,7 +94,16 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DocumentResponse> getDocumentById(@PathVariable Long id) {
+    @Operation(summary = "Get document by ID", description = "Retrieve a specific document by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Document found",
+                    content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Document not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<DocumentResponse> getDocumentById(
+            @Parameter(description = "Document ID", required = true)
+            @PathVariable Long id) {
         try {
             DocumentResponse document = documentService.getDocumentById(id);
             return ResponseEntity.ok(document);
@@ -82,8 +117,17 @@ public class DocumentController {
     }
     
     @PutMapping("/{id}")
+    @Operation(summary = "Update document", description = "Update document metadata")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Document updated successfully",
+                    content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Document not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<DocumentResponse> updateDocument(
+            @Parameter(description = "Document ID", required = true)
             @PathVariable Long id,
+            @Parameter(description = "Document update request", required = true)
             @Valid @RequestBody DocumentUploadRequest request) {
         
         try {
@@ -99,7 +143,15 @@ public class DocumentController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
+    @Operation(summary = "Delete document", description = "Delete a document by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Document deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Document not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Void> deleteDocument(
+            @Parameter(description = "Document ID", required = true)
+            @PathVariable Long id) {
         try {
             documentService.deleteDocument(id);
             return ResponseEntity.noContent().build();
@@ -113,7 +165,15 @@ public class DocumentController {
     }
     
     @GetMapping("/{id}/download")
-    public ResponseEntity<InputStreamResource> downloadDocument(@PathVariable Long id) {
+    @Operation(summary = "Download document", description = "Download a document file by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Document downloaded successfully"),
+            @ApiResponse(responseCode = "404", description = "Document not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<InputStreamResource> downloadDocument(
+            @Parameter(description = "Document ID", required = true)
+            @PathVariable Long id) {
         try {
             DocumentResponse document = documentService.getDocumentById(id);
             InputStream inputStream = documentService.downloadDocument(id);
@@ -137,7 +197,14 @@ public class DocumentController {
     }
     
     @GetMapping("/search")
+    @Operation(summary = "Search documents", description = "Search documents by text query")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Search completed successfully",
+                    content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<List<DocumentResponse>> searchDocuments(
+            @Parameter(description = "Search query", required = true)
             @RequestParam("q") String query) {
         
         try {
@@ -150,8 +217,16 @@ public class DocumentController {
     }
     
     @GetMapping("/search/similar")
+    @Operation(summary = "Search similar documents", description = "Find similar documents using vector similarity search")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Similar documents found",
+                    content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<List<DocumentResponse>> searchSimilarDocuments(
+            @Parameter(description = "Search query for similarity", required = true)
             @RequestParam("q") String query,
+            @Parameter(description = "Maximum number of results")
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
         
         try {
@@ -164,7 +239,13 @@ public class DocumentController {
     }
     
     @GetMapping("/content-types")
+    @Operation(summary = "Get documents by content type", description = "Filter documents by their content type")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Documents filtered successfully"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<List<DocumentResponse>> getDocumentsByContentType(
+            @Parameter(description = "Content type to filter by", required = true)
             @RequestParam("type") String contentType) {
         
         try {

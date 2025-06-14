@@ -27,6 +27,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 	
+	// OpenAPI documentation
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:2.6.0'
+	
 	// MinIO client for file storage
 	implementation 'io.minio:minio:8.5.7'
 	

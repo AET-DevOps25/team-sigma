@@ -1,0 +1,10 @@
+{
+  "watch": ["../server/api-gateway/src/main/java/**/*.java"],
+  "ignore": ["src/api/api.ts", "node_modules/**/*"],
+  "delay": 2000,
+  "exec": "npm run generate-api && echo 'API types regenerated!'",
+  "ext": "java,yaml,yml,json",
+  "env": {
+    "NODE_ENV": "development"
+  }
+} 

@@ -87,6 +87,19 @@ services:
     networks:
       - spring-cloud-network
 
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=document_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - spring-cloud-network
+
   client:
     build:
       context: ./client
@@ -107,3 +120,4 @@ networks:
 volumes:
   weaviate_data:
   minio_data:
+  postgres_data:

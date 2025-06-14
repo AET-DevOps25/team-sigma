@@ -14,6 +14,8 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as AuthedImport } from './routes/_authed'
 import { Route as LoginIndexImport } from './routes/login/index'
 import { Route as AuthedIndexImport } from './routes/_authed/index'
+import { Route as AuthedApiDemoImport } from './routes/_authed/api-demo'
+import { Route as AuthedDocumentIndexImport } from './routes/_authed/document/index'
 
 // Create/Update Routes
 
@@ -34,6 +36,18 @@ const AuthedIndexRoute = AuthedIndexImport.update({
   getParentRoute: () => AuthedRoute,
 } as any)
 
+const AuthedApiDemoRoute = AuthedApiDemoImport.update({
+  id: '/api-demo',
+  path: '/api-demo',
+  getParentRoute: () => AuthedRoute,
+} as any)
+
+const AuthedDocumentIndexRoute = AuthedDocumentIndexImport.update({
+  id: '/document/',
+  path: '/document/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -44,6 +58,13 @@ declare module '@tanstack/react-router' {
       fullPath: ''
       preLoaderRoute: typeof AuthedImport
       parentRoute: typeof rootRoute
+    }
+    '/_authed/api-demo': {
+      id: '/_authed/api-demo'
+      path: '/api-demo'
+      fullPath: '/api-demo'
+      preLoaderRoute: typeof AuthedApiDemoImport
+      parentRoute: typeof AuthedImport
     }
     '/_authed/': {
       id: '/_authed/'
@@ -59,17 +80,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexImport
       parentRoute: typeof rootRoute
     }
+    '/_authed/document/': {
+      id: '/_authed/document/'
+      path: '/document'
+      fullPath: '/document'
+      preLoaderRoute: typeof AuthedDocumentIndexImport
+      parentRoute: typeof AuthedImport
+    }
   }
 }
 
 // Create and export the route tree
 
 interface AuthedRouteChildren {
+  AuthedApiDemoRoute: typeof AuthedApiDemoRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedDocumentIndexRoute: typeof AuthedDocumentIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedApiDemoRoute: AuthedApiDemoRoute,
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedDocumentIndexRoute: AuthedDocumentIndexRoute,
 }
 
 const AuthedRouteWithChildren =
@@ -77,28 +109,40 @@ const AuthedRouteWithChildren =
 
 export interface FileRoutesByFullPath {
   '': typeof AuthedRouteWithChildren
+  '/api-demo': typeof AuthedApiDemoRoute
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/document': typeof AuthedDocumentIndexRoute
 }
 
 export interface FileRoutesByTo {
+  '/api-demo': typeof AuthedApiDemoRoute
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/document': typeof AuthedDocumentIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/_authed': typeof AuthedRouteWithChildren
+  '/_authed/api-demo': typeof AuthedApiDemoRoute
   '/_authed/': typeof AuthedIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/_authed/document/': typeof AuthedDocumentIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '' | '/' | '/login'
+  fullPaths: '' | '/api-demo' | '/' | '/login' | '/document'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login'
-  id: '__root__' | '/_authed' | '/_authed/' | '/login/'
+  to: '/api-demo' | '/' | '/login' | '/document'
+  id:
+    | '__root__'
+    | '/_authed'
+    | '/_authed/api-demo'
+    | '/_authed/'
+    | '/login/'
+    | '/_authed/document/'
   fileRoutesById: FileRoutesById
 }
 
@@ -129,8 +173,14 @@ export const routeTree = rootRoute
     "/_authed": {
       "filePath": "_authed.tsx",
       "children": [
-        "/_authed/"
+        "/_authed/api-demo",
+        "/_authed/",
+        "/_authed/document/"
       ]
+    },
+    "/_authed/api-demo": {
+      "filePath": "_authed/api-demo.tsx",
+      "parent": "/_authed"
     },
     "/_authed/": {
       "filePath": "_authed/index.tsx",
@@ -138,6 +188,10 @@ export const routeTree = rootRoute
     },
     "/login/": {
       "filePath": "login/index.tsx"
+    },
+    "/_authed/document/": {
+      "filePath": "_authed/document/index.tsx",
+      "parent": "/_authed"
     }
   }
 }

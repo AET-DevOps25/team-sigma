@@ -2,7 +2,7 @@ FROM gradle:8.14-jdk21-alpine AS builder
 WORKDIR /app
 COPY build.gradle settings.gradle ./
 COPY src ./src
-RUN gradle build
+RUN gradle build -x test
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

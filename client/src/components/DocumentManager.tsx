@@ -6,10 +6,10 @@ import {
   useUploadDocument,
   useDeleteDocument,
   useDocumentDownload,
+  useGatewayHealth,
   type Document,
   type DocumentUploadRequest,
-} from '../hooks/useDocumentService';
-import { useGatewayHealth } from '../hooks/useDocumentQueries';
+} from '../hooks/useApi';
 
 export function DocumentManager() {
   // State for forms and UI
@@ -20,10 +20,8 @@ export function DocumentManager() {
   const [uploadDescription, setUploadDescription] = useState('');
   const [activeTab, setActiveTab] = useState<'list' | 'search' | 'similar' | 'upload'>('list');
 
-  // API Gateway status (using openapi-react-query)
+  // API hooks
   const { data: gatewayHealth } = useGatewayHealth();
-
-  // Document service hooks (using custom fetch hooks)
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments();
   const { data: searchResults, isLoading: searchLoading } = useDocumentSearch(searchQuery);
   const { data: similarResults, isLoading: similarLoading } = useSimilarDocuments(similarQuery);
@@ -172,7 +170,7 @@ export function DocumentManager() {
             📄 Document Management System
           </h1>
           <p className="text-xl text-gray-600">
-            Comprehensive document service integration example
+            React Query integration with microservices routing
           </p>
         </div>
 
@@ -185,9 +183,7 @@ export function DocumentManager() {
                 <div className="flex items-center space-x-2">
                   <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
                   <span className="text-sm text-gray-600">
-                    Gateway: {gatewayHealth && typeof gatewayHealth === 'object' && 'status' in gatewayHealth 
-                      ? String(gatewayHealth.status) 
-                      : 'Connected'}
+                    Gateway: {gatewayHealth?.status || 'Connected'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -219,7 +215,7 @@ export function DocumentManager() {
               ].map((tab) => (
                 <button
                   key={tab.key}
-                                     onClick={() => setActiveTab(tab.key as 'list' | 'search' | 'similar' | 'upload')}
+                  onClick={() => setActiveTab(tab.key as 'list' | 'search' | 'similar' | 'upload')}
                   className={`py-4 px-2 border-b-2 font-medium text-sm ${
                     activeTab === tab.key
                       ? 'border-blue-500 text-blue-600'
@@ -391,16 +387,16 @@ export function DocumentManager() {
         {/* Architecture Info */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            🏗️ Architecture Integration
+            🏗️ React Query Integration
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-medium text-gray-700 mb-2">OpenAPI React Query</h3>
+              <h3 className="font-medium text-gray-700 mb-2">Gateway Endpoints</h3>
               <ul className="text-sm text-gray-600 space-y-1">
-                <li>✅ Gateway health checks (type-safe)</li>
+                <li>✅ Health monitoring with React Query</li>
                 <li>✅ Service discovery endpoints</li>
-                <li>✅ Auto-generated TypeScript types</li>
-                <li>✅ Built-in React Query integration</li>
+                <li>✅ Proper error handling and caching</li>
+                <li>✅ Loading states and optimistic updates</li>
               </ul>
             </div>
             <div>

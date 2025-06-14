@@ -1,69 +1,281 @@
-import { useQuery } from '@tanstack/react-query'
-import { typedApi, type TypedApiClient } from '../api/typed-client'
-import { api } from '../api/client'
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// Query keys for caching
-export const queryKeys = {
-  gateway: {
-    health: ['gateway', 'health'] as const,
-    services: ['gateway', 'services'] as const,
-  },
-  documents: {
-    all: ['documents'] as const,
-    byId: (id: number) => ['documents', id] as const,
-    search: (query: string) => ['documents', 'search', query] as const,
-    similar: (query: string, limit?: number) => ['documents', 'similar', query, limit] as const,
-  },
-  hello: {
-    greeting: ['hello', 'greeting'] as const,
-    personal: (name: string) => ['hello', 'personal', name] as const,
-  },
-} as const
+const API_BASE = 'http://localhost:8080';
 
-// Custom hooks for typed API calls
-export function useGatewayHealth() {
-  return useQuery({
-    queryKey: queryKeys.gateway.health,
-    queryFn: () => typedApi.gateway.health(),
-    staleTime: 30000, // 30 seconds
-  })
+// Types
+export interface GatewayHealth {
+  service: string;
+  status: string;
 }
 
-export function useGatewayServices() {
+export interface ServiceInstance {
+  scheme: string;
+  host: string;
+  port: number;
+  instanceId: string;
+  uri: string;
+  serviceId: string;
+  metadata: Record<string, string>;
+  secure: boolean;
+}
+
+export interface ServicesResponse {
+  services: string[];
+  instances: Record<string, ServiceInstance[]>;
+}
+
+export interface Document {
+  id: number;
+  name: string;
+  description?: string;
+  originalFilename: string;
+  contentType: string;
+  fileSize: number;
+  uploadDate: string;
+  minioObjectName: string;
+  weaviateId?: string;
+}
+
+export interface DocumentUploadRequest {
+  name: string;
+  description?: string;
+}
+
+// API functions
+const api = {
+  // Gateway endpoints
+  getGatewayHealth: async (): Promise<GatewayHealth> => {
+    const response = await fetch(`${API_BASE}/api/gateway/health`);
+    if (!response.ok) throw new Error('Failed to fetch gateway health');
+    return response.json();
+  },
+
+  getServices: async (): Promise<ServicesResponse> => {
+    const response = await fetch(`${API_BASE}/api/gateway/services`);
+    if (!response.ok) throw new Error('Failed to fetch services');
+    return response.json();
+  },
+
+  getServiceApiDocs: async (serviceName: string): Promise<string> => {
+    const response = await fetch(`${API_BASE}/api/${serviceName}/v3/api-docs`);
+    if (!response.ok) throw new Error('Failed to fetch service API docs');
+    return response.text();
+  },
+
+  // Document service endpoints
+  getDocuments: async (): Promise<Document[]> => {
+    const response = await fetch(`${API_BASE}/api/documents`);
+    if (!response.ok) throw new Error('Failed to fetch documents');
+    return response.json();
+  },
+
+  getDocument: async (id: number): Promise<Document> => {
+    const response = await fetch(`${API_BASE}/api/documents/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch document');
+    return response.json();
+  },
+
+  uploadDocument: async (file: File, metadata: DocumentUploadRequest): Promise<Document> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', metadata.name);
+    if (metadata.description) {
+      formData.append('description', metadata.description);
+    }
+
+    const response = await fetch(`${API_BASE}/api/documents/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('Failed to upload document');
+    return response.json();
+  },
+
+  searchDocuments: async (query: string): Promise<Document[]> => {
+    const response = await fetch(`${API_BASE}/api/documents/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error('Failed to search documents');
+    return response.json();
+  },
+
+  searchSimilarDocuments: async (query: string, limit = 10): Promise<Document[]> => {
+    const response = await fetch(
+      `${API_BASE}/api/documents/search/similar?q=${encodeURIComponent(query)}&limit=${limit}`
+    );
+    if (!response.ok) throw new Error('Failed to search similar documents');
+    return response.json();
+  },
+
+  updateDocument: async (id: number, metadata: DocumentUploadRequest): Promise<Document> => {
+    const response = await fetch(`${API_BASE}/api/documents/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) throw new Error('Failed to update document');
+    return response.json();
+  },
+
+  deleteDocument: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE}/api/documents/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) throw new Error('Failed to delete document');
+  },
+
+  downloadDocument: async (id: number): Promise<Blob> => {
+    const response = await fetch(`${API_BASE}/api/documents/${id}/download`);
+    if (!response.ok) throw new Error('Failed to download document');
+    return response.blob();
+  },
+
+  // Hello service endpoints
+  getHello: async (name?: string): Promise<string> => {
+    const url = name ? `${API_BASE}/api/hello/${name}` : `${API_BASE}/api/hello/`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch hello');
+    return response.text();
+  },
+};
+
+// Gateway hooks
+export function useGatewayHealth() {
   return useQuery({
-    queryKey: queryKeys.gateway.services,
-    queryFn: () => typedApi.gateway.services(),
+    queryKey: ['gateway', 'health'],
+    queryFn: api.getGatewayHealth,
+    staleTime: 30000, // 30 seconds
+  });
+}
+
+export function useServices() {
+  return useQuery({
+    queryKey: ['gateway', 'services'],
+    queryFn: api.getServices,
     staleTime: 60000, // 1 minute
-  })
+  });
 }
 
 export function useServiceApiDocs(serviceName: string) {
   return useQuery({
-    queryKey: ['docs', serviceName],
-    queryFn: () => typedApi.docs.getServiceDocs(serviceName),
+    queryKey: ['gateway', 'api-docs', serviceName],
+    queryFn: () => api.getServiceApiDocs(serviceName),
     enabled: !!serviceName,
     staleTime: 300000, // 5 minutes
-  })
+  });
+}
+
+// Document hooks
+export function useDocuments() {
+  return useQuery({
+    queryKey: ['documents'],
+    queryFn: api.getDocuments,
+    staleTime: 30000, // 30 seconds
+  });
+}
+
+export function useDocument(id: number | undefined) {
+  return useQuery({
+    queryKey: ['documents', id],
+    queryFn: () => api.getDocument(id!),
+    enabled: !!id,
+    staleTime: 300000, // 5 minutes
+  });
+}
+
+export function useDocumentSearch(query: string) {
+  return useQuery({
+    queryKey: ['documents', 'search', query],
+    queryFn: () => api.searchDocuments(query),
+    enabled: !!query.trim(),
+    staleTime: 30000, // 30 seconds
+  });
+}
+
+export function useSimilarDocuments(query: string, limit = 10) {
+  return useQuery({
+    queryKey: ['documents', 'similar', query, limit],
+    queryFn: () => api.searchSimilarDocuments(query, limit),
+    enabled: !!query.trim(),
+    staleTime: 30000, // 30 seconds
+  });
+}
+
+// Document mutations
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ file, metadata }: { file: File; metadata: DocumentUploadRequest }) =>
+      api.uploadDocument(file, metadata),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+    },
+  });
+}
+
+export function useUpdateDocument() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, metadata }: { id: number; metadata: DocumentUploadRequest }) =>
+      api.updateDocument(id, metadata),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['documents', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+    },
+  });
+}
+
+export function useDeleteDocument() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => api.deleteDocument(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+    },
+  });
 }
 
 // Hello service hooks
-export function useGreeting() {
+export function useHello(name?: string) {
   return useQuery({
-    queryKey: queryKeys.hello.greeting,
-    queryFn: () => api.hello.greeting(),
-    staleTime: 300000, // 5 minutes
-  })
+    queryKey: ['hello', name],
+    queryFn: () => api.getHello(name),
+    staleTime: 60000, // 1 minute
+  });
 }
 
-export function usePersonalGreeting(name: string) {
-  return useQuery({
-    queryKey: queryKeys.hello.personal(name),
-    queryFn: () => api.hello.personalGreeting(name),
-    enabled: !!name,
-    staleTime: 300000,
-  })
-}
+// Custom hook for file download
+export function useDocumentDownload() {
+  const [isDownloading, setIsDownloading] = useState(false);
 
-// Export the typed API client for direct use
-export { typedApi, api }
-export type { TypedApiClient } 
+  const downloadDocument = useCallback(async (id: number, filename: string) => {
+    setIsDownloading(true);
+    try {
+      const blob = await api.downloadDocument(id);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      throw error;
+    } finally {
+      setIsDownloading(false);
+    }
+  }, []);
+
+  return { downloadDocument, isDownloading };
+} 

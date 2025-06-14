@@ -19,7 +19,7 @@ springdoc:
       - url: /v3/api-docs
         name: "API Gateway"
         primaryName: "API Gateway"
-      - url: /api/documents/v3/api-docs
+      - url: /api/document/v3/api-docs
         name: "Document Service"
         primaryName: "Document Service"
       - url: /api/hello/v3/api-docs
@@ -29,6 +29,9 @@ springdoc:
     enabled: true
     path: /v3/api-docs
   group-configs:
+    - group: "gateway"
+      paths-to-match: "/api/gateway/**"
+      packages-to-scan: "de.tum.team_sigma.api_gateway"
     - group: "full"
       paths-to-match: "/**"
       packages-to-scan: "de.tum.team_sigma.api_gateway"

@@ -14,7 +14,7 @@ public class WeaviateConfig {
 
     @Bean
     public WeaviateClient weaviateClient() {
-        Config config = new Config(weaviateUrl);
+        Config config = new Config("http", weaviateUrl);
         return new WeaviateClient(config);
     }
 } 

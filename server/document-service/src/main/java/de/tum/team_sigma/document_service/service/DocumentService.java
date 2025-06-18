@@ -107,14 +107,14 @@ public class DocumentService {
                 String chunkText = chunks[i].trim();
                 if (!chunkText.isEmpty()) {
                     // 1. Create embedding vector using LangChain4j
-                    Embedding embedding = embeddingModel.embed(chunkText);
+                    Embedding embedding = embeddingModel.embed(chunkText).content();
                     float[] vector = embedding.vector();
 
                     // 2. Store vector + metadata in Weaviate and retrieve object ID
                     String uuid = UUID.randomUUID().toString();
                     weaviateClient.data().creator()
                         .withClassName("DocumentChunk")
-                        .withId(uuid)
+                        .withID(uuid)
                         .withProperties(Map.of(
                             "text", chunkText,
                             "documentId", document.getId(),

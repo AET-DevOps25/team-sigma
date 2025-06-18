@@ -9,3 +9,29 @@ eureka:
   client:
     serviceUrl:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://eureka:8761/eureka/}
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      - url: /v3/api-docs
+        name: "API Gateway"
+        primaryName: "API Gateway"
+      - url: /api/document/v3/api-docs
+        name: "Document Service"
+        primaryName: "Document Service"
+      - url: /api/hello/v3/api-docs
+        name: "Hello Service"
+        primaryName: "Hello Service"
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  group-configs:
+    - group: "gateway"
+      paths-to-match: "/api/gateway/**"
+      packages-to-scan: "de.tum.team_sigma.api_gateway"
+    - group: "full"
+      paths-to-match: "/**"
+      packages-to-scan: "de.tum.team_sigma.api_gateway"

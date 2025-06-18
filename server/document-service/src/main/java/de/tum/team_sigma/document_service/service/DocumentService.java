@@ -108,7 +108,12 @@ public class DocumentService {
                 if (!chunkText.isEmpty()) {
                     // 1. Create embedding vector using LangChain4j
                     Embedding embedding = embeddingModel.embed(chunkText).content();
-                    float[] vector = embedding.vector();
+                    // Weaviate client expects Float[] (boxed) rather than primitive float[].
+                    float[] primitiveVector = embedding.vector();
+                    Float[] vector = new Float[primitiveVector.length];
+                    for (int j = 0; j < primitiveVector.length; j++) {
+                        vector[j] = primitiveVector[j];
+                    }
 
                     // 2. Store vector + metadata in Weaviate and retrieve object ID
                     String uuid = UUID.randomUUID().toString();

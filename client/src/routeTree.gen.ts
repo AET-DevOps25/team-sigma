@@ -8,47 +8,76 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as AuthedApiDemoRouteImport } from './routes/_authed/api-demo'
+import { Route as AuthedDocumentIndexRouteImport } from './routes/_authed/document/index'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as AuthedImport } from './routes/_authed'
-import { Route as LoginIndexImport } from './routes/login/index'
-import { Route as AuthedIndexImport } from './routes/_authed/index'
-import { Route as AuthedApiDemoImport } from './routes/_authed/api-demo'
-import { Route as AuthedDocumentIndexImport } from './routes/_authed/document/index'
-
-// Create/Update Routes
-
-const AuthedRoute = AuthedImport.update({
+const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const LoginIndexRoute = LoginIndexImport.update({
+const LoginIndexRoute = LoginIndexRouteImport.update({
   id: '/login/',
   path: '/login/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AuthedIndexRoute = AuthedIndexImport.update({
+const AuthedIndexRoute = AuthedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthedRoute,
 } as any)
-
-const AuthedApiDemoRoute = AuthedApiDemoImport.update({
+const AuthedApiDemoRoute = AuthedApiDemoRouteImport.update({
   id: '/api-demo',
   path: '/api-demo',
   getParentRoute: () => AuthedRoute,
 } as any)
-
-const AuthedDocumentIndexRoute = AuthedDocumentIndexImport.update({
+const AuthedDocumentIndexRoute = AuthedDocumentIndexRouteImport.update({
   id: '/document/',
   path: '/document/',
   getParentRoute: () => AuthedRoute,
 } as any)
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/api-demo': typeof AuthedApiDemoRoute
+  '/': typeof AuthedIndexRoute
+  '/login': typeof LoginIndexRoute
+  '/document': typeof AuthedDocumentIndexRoute
+}
+export interface FileRoutesByTo {
+  '/api-demo': typeof AuthedApiDemoRoute
+  '/': typeof AuthedIndexRoute
+  '/login': typeof LoginIndexRoute
+  '/document': typeof AuthedDocumentIndexRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/_authed': typeof AuthedRouteWithChildren
+  '/_authed/api-demo': typeof AuthedApiDemoRoute
+  '/_authed/': typeof AuthedIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/_authed/document/': typeof AuthedDocumentIndexRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/api-demo' | '/' | '/login' | '/document'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/api-demo' | '/' | '/login' | '/document'
+  id:
+    | '__root__'
+    | '/_authed'
+    | '/_authed/api-demo'
+    | '/_authed/'
+    | '/login/'
+    | '/_authed/document/'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  AuthedRoute: typeof AuthedRouteWithChildren
+  LoginIndexRoute: typeof LoginIndexRoute
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
@@ -56,41 +85,39 @@ declare module '@tanstack/react-router' {
       id: '/_authed'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof AuthedImport
-      parentRoute: typeof rootRoute
-    }
-    '/_authed/api-demo': {
-      id: '/_authed/api-demo'
-      path: '/api-demo'
-      fullPath: '/api-demo'
-      preLoaderRoute: typeof AuthedApiDemoImport
-      parentRoute: typeof AuthedImport
-    }
-    '/_authed/': {
-      id: '/_authed/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthedIndexImport
-      parentRoute: typeof AuthedImport
+      preLoaderRoute: typeof AuthedRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/login/': {
       id: '/login/'
       path: '/login'
       fullPath: '/login'
-      preLoaderRoute: typeof LoginIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof LoginIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed/': {
+      id: '/_authed/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/api-demo': {
+      id: '/_authed/api-demo'
+      path: '/api-demo'
+      fullPath: '/api-demo'
+      preLoaderRoute: typeof AuthedApiDemoRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/document/': {
       id: '/_authed/document/'
       path: '/document'
       fullPath: '/document'
-      preLoaderRoute: typeof AuthedDocumentIndexImport
-      parentRoute: typeof AuthedImport
+      preLoaderRoute: typeof AuthedDocumentIndexRouteImport
+      parentRoute: typeof AuthedRoute
     }
   }
 }
-
-// Create and export the route tree
 
 interface AuthedRouteChildren {
   AuthedApiDemoRoute: typeof AuthedApiDemoRoute
@@ -107,92 +134,10 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
-export interface FileRoutesByFullPath {
-  '': typeof AuthedRouteWithChildren
-  '/api-demo': typeof AuthedApiDemoRoute
-  '/': typeof AuthedIndexRoute
-  '/login': typeof LoginIndexRoute
-  '/document': typeof AuthedDocumentIndexRoute
-}
-
-export interface FileRoutesByTo {
-  '/api-demo': typeof AuthedApiDemoRoute
-  '/': typeof AuthedIndexRoute
-  '/login': typeof LoginIndexRoute
-  '/document': typeof AuthedDocumentIndexRoute
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/_authed': typeof AuthedRouteWithChildren
-  '/_authed/api-demo': typeof AuthedApiDemoRoute
-  '/_authed/': typeof AuthedIndexRoute
-  '/login/': typeof LoginIndexRoute
-  '/_authed/document/': typeof AuthedDocumentIndexRoute
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '' | '/api-demo' | '/' | '/login' | '/document'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/api-demo' | '/' | '/login' | '/document'
-  id:
-    | '__root__'
-    | '/_authed'
-    | '/_authed/api-demo'
-    | '/_authed/'
-    | '/login/'
-    | '/_authed/document/'
-  fileRoutesById: FileRoutesById
-}
-
-export interface RootRouteChildren {
-  AuthedRoute: typeof AuthedRouteWithChildren
-  LoginIndexRoute: typeof LoginIndexRoute
-}
-
 const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   LoginIndexRoute: LoginIndexRoute,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/_authed",
-        "/login/"
-      ]
-    },
-    "/_authed": {
-      "filePath": "_authed.tsx",
-      "children": [
-        "/_authed/api-demo",
-        "/_authed/",
-        "/_authed/document/"
-      ]
-    },
-    "/_authed/api-demo": {
-      "filePath": "_authed/api-demo.tsx",
-      "parent": "/_authed"
-    },
-    "/_authed/": {
-      "filePath": "_authed/index.tsx",
-      "parent": "/_authed"
-    },
-    "/login/": {
-      "filePath": "login/index.tsx"
-    },
-    "/_authed/document/": {
-      "filePath": "_authed/document/index.tsx",
-      "parent": "/_authed"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

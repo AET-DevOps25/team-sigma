@@ -23,7 +23,7 @@ jobs:
 
       - name: Run Frontend Unit Tests
         working-directory: ./client
-        run: bun test --run
+        run: bun run test -- --run
 
       - name: Build with Bun
         working-directory: ./client

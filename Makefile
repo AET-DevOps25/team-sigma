@@ -26,7 +26,7 @@ test-all: test-servers
 
 test-client:
 	@echo "\n===== Running frontend tests =====";
-	@cd $(CLIENT_DIR) && bun test --run
+	@cd $(CLIENT_DIR) && bun run test -- --run
 
 # Run test-suite of every server microservice
 # This keeps the output of each microservice separated for clarity.

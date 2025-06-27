@@ -66,6 +66,11 @@ dependencyManagement {
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	// Exclude heavyweight container-based integration tests by default. They can
+	// be run separately with `./gradlew integrationTest` or by removing this
+	// exclusion.
+	exclude '**/*ContainerIntegrationTest*'
 }
 
 // Skip tests when building with -x test

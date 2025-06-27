@@ -1,4 +1,5 @@
-.PHONY: run-dev test test-all test-api-gateway test-document-service test-eureka test-hello-service
+.PHONY: run-dev test test-servers test-client test-all \
+        test-api-gateway test-document-service test-eureka test-hello-service
 
 run-dev:
 	docker compose up --build
@@ -10,15 +11,27 @@ SERVER_SERVICES := \
 	server/eureka \
 	server/hello-service
 
-# Default target to run the test-suite of every microservice
+# Client application directory (contains Vitest suite)
+CLIENT_DIR := client
+
+# Default target: run both server and client tests
 # Usage: `make test`
 
-test: test-all
+test: test-servers test-client
 
-# Iterate over every service directory and execute its Gradle test task
+# Alias to maintain backward compatibility; `make test-all` will behave like test-servers only
+test-all: test-servers
+
+# Run Vitest suite for the React client
+
+test-client:
+	@echo "\n===== Running frontend tests =====";
+	@cd $(CLIENT_DIR) && bun test --run
+
+# Run test-suite of every server microservice
 # This keeps the output of each microservice separated for clarity.
 
-test-all:
+test-servers:
 	@for dir in $(SERVER_SERVICES); do \
 	  echo "\n===== Running tests for $$dir ====="; \
 	  (cd $$dir && ./gradlew --quiet test); \

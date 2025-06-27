@@ -26,6 +26,13 @@ public class MinioConfig {
     @Value("${minio.bucket-name}")
     private String bucketName;
     
+    /**
+     * Allows tests to disable the network call that verifies/creates the bucket.
+     * Defaults to <code>false</code> so production behaviour is unchanged.
+     */
+    @Value("${minio.skip-check:false}")
+    private boolean skipBucketCheck;
+    
     @Bean
     public MinioClient minioClient() {
         try {
@@ -34,8 +41,12 @@ public class MinioConfig {
                     .credentials(accessKey, secretKey)
                     .build();
             
-            // Create bucket if it doesn't exist
-            createBucketIfNotExists(client);
+            // Optionally create bucket if it doesn't exist (skipped in tests)
+            if (!skipBucketCheck) {
+                createBucketIfNotExists(client);
+            } else {
+                logger.debug("Skipping MinIO bucket existence check (minio.skip-check=true)");
+            }
             
             return client;
         } catch (Exception e) {

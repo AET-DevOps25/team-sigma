@@ -9,11 +9,19 @@ public class DocumentUploadRequest {
     
     private String description;
     
+    private String organizationId;
+    
     public DocumentUploadRequest() {}
     
     public DocumentUploadRequest(String name, String description) {
         this.name = name;
         this.description = description;
+    }
+    
+    public DocumentUploadRequest(String name, String description, String organizationId) {
+        this.name = name;
+        this.description = description;
+        this.organizationId = organizationId;
     }
     
     public String getName() {
@@ -30,5 +38,13 @@ public class DocumentUploadRequest {
     
     public void setDescription(String description) {
         this.description = description;
+    }
+    
+    public String getOrganizationId() {
+        return organizationId;
+    }
+    
+    public void setOrganizationId(String organizationId) {
+        this.organizationId = organizationId;
     }
 } 

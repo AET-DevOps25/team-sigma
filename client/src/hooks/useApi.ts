@@ -32,14 +32,16 @@ export interface Document {
   originalFilename: string;
   contentType: string;
   fileSize: number;
-  uploadDate: string;
-  minioObjectName: string;
-  weaviateId?: string;
+  organizationId?: string;
+  createdAt: string;
+  updatedAt?: string;
+  chunkCount: number;
 }
 
 export interface DocumentUploadRequest {
   name: string;
   description?: string;
+  organizationId?: string;
 }
 
 // API functions
@@ -82,6 +84,9 @@ const api = {
     formData.append('name', metadata.name);
     if (metadata.description) {
       formData.append('description', metadata.description);
+    }
+    if (metadata.organizationId) {
+      formData.append('organizationId', metadata.organizationId);
     }
 
     const response = await fetch(`${API_BASE}/api/documents/upload`, {

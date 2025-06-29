@@ -71,7 +71,8 @@ public class DocumentService {
                 file.getOriginalFilename(),
                 file.getContentType(),
                 file.getSize(),
-                minioPath
+                minioPath,
+                request.getOrganizationId()
             );
             document.setDescription(request.getDescription());
             

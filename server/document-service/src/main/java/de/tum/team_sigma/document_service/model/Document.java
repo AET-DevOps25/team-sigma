@@ -37,6 +37,9 @@ public class Document {
     @Column(name = "description")
     private String description;
     
+    @Column(name = "organization_id")
+    private String organizationId;
+    
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
@@ -57,6 +60,16 @@ public class Document {
         this.contentType = contentType;
         this.fileSize = fileSize;
         this.minioPath = minioPath;
+    }
+    
+    public Document(String name, String originalFilename, String contentType, Long fileSize, String minioPath, String organizationId) {
+        this();
+        this.name = name;
+        this.originalFilename = originalFilename;
+        this.contentType = contentType;
+        this.fileSize = fileSize;
+        this.minioPath = minioPath;
+        this.organizationId = organizationId;
     }
     
     @PreUpdate
@@ -119,6 +132,14 @@ public class Document {
     
     public void setDescription(String description) {
         this.description = description;
+    }
+    
+    public String getOrganizationId() {
+        return organizationId;
+    }
+    
+    public void setOrganizationId(String organizationId) {
+        this.organizationId = organizationId;
     }
     
     public LocalDateTime getCreatedAt() {

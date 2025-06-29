@@ -11,6 +11,7 @@ public class DocumentResponse {
     private String contentType;
     private Long fileSize;
     private String description;
+    private String organizationId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private int chunkCount;
@@ -24,6 +25,7 @@ public class DocumentResponse {
         this.contentType = document.getContentType();
         this.fileSize = document.getFileSize();
         this.description = document.getDescription();
+        this.organizationId = document.getOrganizationId();
         this.createdAt = document.getCreatedAt();
         this.updatedAt = document.getUpdatedAt();
         this.chunkCount = document.getChunks() != null ? document.getChunks().size() : 0;
@@ -76,6 +78,14 @@ public class DocumentResponse {
     
     public void setDescription(String description) {
         this.description = description;
+    }
+    
+    public String getOrganizationId() {
+        return organizationId;
+    }
+    
+    public void setOrganizationId(String organizationId) {
+        this.organizationId = organizationId;
     }
     
     public LocalDateTime getCreatedAt() {

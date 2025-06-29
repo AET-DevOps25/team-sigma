@@ -23,10 +23,39 @@ ext {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	
+	// OpenAPI documentation
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:2.6.0'
+	
+	// MinIO client for file storage
+	implementation 'io.minio:minio:8.5.7'
+	
+	// Apache Tika for document parsing (standalone)
+	implementation 'org.apache.tika:tika-core:2.9.0'
+	implementation 'org.apache.tika:tika-parsers-standard-package:2.9.0'
+	
+	// H2 database for local development/testing
+	runtimeOnly 'com.h2database:h2'
+	
+	// PostgreSQL driver for production
+	runtimeOnly 'org.postgresql:postgresql:42.7.3'
+	
+	// Weaviate Java client
 	implementation 'io.weaviate:client:5.2.1'
+	
+	// LangChain4j core and in-process embedding model
+	implementation 'dev.langchain4j:langchain4j-core:1.0.1'
+	implementation 'dev.langchain4j:langchain4j-embeddings-all-minilm-l6-v2:1.0.1-beta6'
+	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.testcontainers:junit-jupiter:1.21.2'
+	testImplementation 'org.testcontainers:minio:1.21.2'
+	testImplementation 'org.testcontainers:weaviate:1.21.2'
 }
 
 dependencyManagement {
@@ -37,6 +66,16 @@ dependencyManagement {
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	// Exclude heavyweight container-based integration tests by default. They can
+	// be run separately with `./gradlew integrationTest` or by removing this
+	// exclusion.
+	exclude '**/*ContainerIntegrationTest*'
+}
+
+// Skip tests when building with -x test
+tasks.withType(Test) {
+	systemProperty 'spring.profiles.active', 'test'
 }
 
 jar {

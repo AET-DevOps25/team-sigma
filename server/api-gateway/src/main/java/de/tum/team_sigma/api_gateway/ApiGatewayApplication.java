@@ -9,7 +9,6 @@ import org.springframework.web.servlet.function.ServerResponse;
 import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.*;
 import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequestPredicates.*;
 import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.*;
-import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.*;
 import static org.springframework.cloud.gateway.server.mvc.filter.LoadBalancerFilterFunctions.*;
 
 @SpringBootApplication
@@ -18,21 +17,19 @@ public class ApiGatewayApplication {
         SpringApplication.run(ApiGatewayApplication.class, args);
     }
 
-    private RouterFunction<ServerResponse> buildMicroserviceRoute(String serviceName) {
-        return route(serviceName + "-service")
-                .route(path("/api/" + serviceName + "/**"), http())
-                .before(stripPrefix(2))
-                .filter(lb(serviceName + "-service"))
+    @Bean
+    public RouterFunction<ServerResponse> helloServiceRouteConfig() {
+        return route("hello-service")
+                .route(path("/api/hello/**"), http())
+                .filter(lb("hello-service"))
                 .build();
     }
 
     @Bean
-    public RouterFunction<ServerResponse> helloServiceRouteConfig() {
-        return buildMicroserviceRoute("hello");
-    }
-
-    @Bean
     public RouterFunction<ServerResponse> documentServiceRouteConfig() {
-        return buildMicroserviceRoute("document");
+        return route("document-service")
+                .route(path("/api/documents/**"), http())
+                .filter(lb("document-service"))
+                .build();
     }
 }

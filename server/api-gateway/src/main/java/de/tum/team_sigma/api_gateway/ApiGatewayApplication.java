@@ -24,4 +24,12 @@ public class ApiGatewayApplication {
                 .filter(lb("document-service"))
                 .build();
     }
+
+    @Bean
+    public RouterFunction<ServerResponse> chatServiceRouteConfig() {
+        return route("chat-service")
+                .route(path("/api/chat/**"), http())
+                .filter(lb("chat-service"))
+                .build();
+    }
 }

@@ -3,6 +3,7 @@ import { MessageSquare, Send, User, Bot } from "lucide-react";
 import { Button } from "../ui/button";
 import type { Message, Conversation } from "../../models";
 import type { Document } from "../../hooks/useApi";
+import { useChatMessage } from "../../hooks/useApi";
 import { Textarea } from "../ui/textarea";
 
 interface ChatTabProps {
@@ -13,9 +14,9 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const chatMutation = useChatMessage();
 
   useEffect(() => {
-    // Create a new conversation for this document
     const newConversation: Conversation = {
       id: `conv_${document.id}`,
       slideDeckId: document.id.toString(),
@@ -51,10 +52,14 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
     setInputValue("");
     setIsWaitingForResponse(true);
 
-    // Simulate AI response (replace with actual API call later)
-    setTimeout(() => {
+    try {
+      const data = await chatMutation.mutateAsync({
+        message: userMessage.text,
+        document_id: document.id.toString()
+      });
+
       const aiResponse: Message = {
-        text: `I understand you're asking about "${userMessage.text}". Based on the document "${document.name}", I can help you explore this topic. This is a simulated response - in the future, this will connect to a real AI service to analyze the document content.`,
+        text: data.response,
         isUser: false,
         timestamp: new Date(),
       };
@@ -64,8 +69,23 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
         messages: [...prev.messages, aiResponse],
         updatedAt: new Date(),
       } : null);
+    } catch (error) {
+      console.error('Chat service error:', error);
+      // Fallback to simulated response if API fails
+      const aiResponse: Message = {
+        text: `Sorry, I'm having trouble connecting to the chat service. This is a fallback response for your question: "${userMessage.text}"`,
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setConversation(prev => prev ? {
+        ...prev,
+        messages: [...prev.messages, aiResponse],
+        updatedAt: new Date(),
+      } : null);
+    } finally {
       setIsWaitingForResponse(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

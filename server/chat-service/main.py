@@ -136,11 +136,10 @@ async def get_eureka_services():
         target_service = "document-service"
         
         try:
-            # Test eureka_client.do_service to check if document service is discoverable
-            loop = asyncio.get_event_loop()
-            health_response = await loop.run_in_executor(
-                None,
-                lambda: eureka_client.do_service(target_service, "/api/documents/", return_type="string")
+            health_response = await eureka_client.do_service(
+                target_service,
+                "/api/documents/",
+                return_type="string"
             )
             
             if health_response:
@@ -174,9 +173,7 @@ async def get_eureka_services():
         return {"error": str(e)}
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """Chat endpoint that fetches document information and provides contextual responses"""
-    
+async def chat(request: ChatRequest):    
     # Fetch document information from document service via Eureka
     document = await document_client.get_document_by_id(request.document_id)
     
@@ -186,7 +183,6 @@ async def chat(request: ChatRequest):
             detail=f"Document with ID {request.document_id} not found"
         )
     
-    # Generate contextual response based on document information
     response_text = (
         f"AI Response: I understand you're asking '{request.message}' about the document "
         f"'{document.name}' (ID: {document.id}). This document was uploaded on "
@@ -198,7 +194,6 @@ async def chat(request: ChatRequest):
     if document.description:
         response_text += f" Document description: {document.description}"
     
-    # For now, this is a enhanced dummy response. 
     # TODO: Implement actual AI processing using document chunks for RAG
     response_text += " [This is currently a demonstration response - full AI integration pending]"
     

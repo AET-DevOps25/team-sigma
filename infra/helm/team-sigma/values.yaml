@@ -12,9 +12,6 @@ services:
   - name: eureka
     targetPort: 8761
     image: ghcr.io/aet-devops25/team-sigma/eureka:latest
-  - name: hello-service
-    targetPort: 8080
-    image: ghcr.io/aet-devops25/team-sigma/hello-service:latest
   - name: document-service
     targetPort: 8080
     image: ghcr.io/aet-devops25/team-sigma/document-service:latest

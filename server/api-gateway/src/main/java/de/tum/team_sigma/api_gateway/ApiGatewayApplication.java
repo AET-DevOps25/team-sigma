@@ -18,14 +18,6 @@ public class ApiGatewayApplication {
     }
 
     @Bean
-    public RouterFunction<ServerResponse> helloServiceRouteConfig() {
-        return route("hello-service")
-                .route(path("/api/hello/**"), http())
-                .filter(lb("hello-service"))
-                .build();
-    }
-
-    @Bean
     public RouterFunction<ServerResponse> documentServiceRouteConfig() {
         return route("document-service")
                 .route(path("/api/documents/**"), http())

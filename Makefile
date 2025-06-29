@@ -1,5 +1,5 @@
 .PHONY: run-dev test test-servers test-client test-all \
-        test-api-gateway test-document-service test-eureka test-hello-service
+        test-api-gateway test-document-service test-eureka
 
 run-dev:
 	@echo "Starting all services in parallel..."
@@ -8,15 +8,13 @@ run-dev:
 		'client	cd client && bun i && bun dev' \
 		'eureka	cd server/eureka && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
 		'api-gateway	cd server/api-gateway && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
-		'document-service	cd server/document-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
-		'hello-service	cd server/hello-service && watchexec -r -e java,yml,yaml ./gradlew bootRun'
+		'document-service	cd server/document-service && watchexec -r -e java,yml,yaml ./gradlew bootRun'
 
 # Directories of all server microservices that contain a Gradle wrapper
 SERVER_SERVICES := \
 	server/api-gateway \
 	server/document-service \
-	server/eureka \
-	server/hello-service
+	server/eureka
 
 # Client application directory (contains Vitest suite)
 CLIENT_DIR := client
@@ -54,6 +52,3 @@ test-document-service:
 
 test-eureka:
 	@$(MAKE) -C server/eureka test
-
-test-hello-service:
-	@$(MAKE) -C server/hello-service test

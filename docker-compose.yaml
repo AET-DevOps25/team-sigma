@@ -27,18 +27,6 @@ services:
       - client-network
       - spring-cloud-network
 
-  hello-service:
-    build:
-      context: ./server/hello-service
-    environment:
-      - SPRING_APPLICATION_NAME=hello-service
-      - SERVER_PORT=8080
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
-    depends_on:
-      - eureka
-    networks:
-      - spring-cloud-network
-
   document-service:
     build:
       context: ./server/document-service

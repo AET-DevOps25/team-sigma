@@ -32,7 +32,7 @@ export interface Document {
   originalFilename: string;
   contentType: string;
   fileSize: number;
-  organizationId?: string;
+  lectureId?: string;
   createdAt: string;
   updatedAt?: string;
   chunkCount: number;
@@ -41,7 +41,7 @@ export interface Document {
 export interface DocumentUploadRequest {
   name: string;
   description?: string;
-  organizationId?: string;
+  lectureId: string;
 }
 
 export interface ChatRequest {
@@ -59,6 +59,18 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: number;
   explanation: string;
+}
+
+export interface Lecture {
+  id: number;
+  name: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface LectureRequest {
+  name: string;
+  userId: string;
 }
 
 // API functions
@@ -105,11 +117,10 @@ const api = {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", metadata.name);
+    formData.append("lectureId", metadata.lectureId);
+
     if (metadata.description) {
       formData.append("description", metadata.description);
-    }
-    if (metadata.organizationId) {
-      formData.append("organizationId", metadata.organizationId);
     }
 
     const response = await fetch(`${API_BASE}/api/documents/upload`, {
@@ -200,6 +211,52 @@ const api = {
     const response = await fetch(`${API_BASE}/api/quiz/${slideId}`);
     if (!response.ok) throw new Error("Failed to fetch quiz questions");
     return response.json();
+  },
+
+  // Lecture service endpoints
+  getLectures: async (): Promise<Lecture[]> => {
+    const response = await fetch(`${API_BASE}/api/lectures`);
+    if (!response.ok) throw new Error("Failed to fetch lectures");
+    return response.json();
+  },
+
+  getLecturesByUser: async (userId: string): Promise<Lecture[]> => {
+    const response = await fetch(`${API_BASE}/api/lectures/user/${encodeURIComponent(userId)}`);
+    if (!response.ok) throw new Error("Failed to fetch user lectures");
+    return response.json();
+  },
+
+  getLecture: async (id: number): Promise<Lecture> => {
+    const response = await fetch(`${API_BASE}/api/lectures/${id}`);
+    if (!response.ok) throw new Error("Failed to fetch lecture");
+    return response.json();
+  },
+
+  createLecture: async (request: LectureRequest): Promise<Lecture> => {
+    const response = await fetch(`${API_BASE}/api/lectures`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error("Failed to create lecture");
+    return response.json();
+  },
+
+  updateLecture: async (id: number, request: LectureRequest): Promise<Lecture> => {
+    const response = await fetch(`${API_BASE}/api/lectures/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error("Failed to update lecture");
+    return response.json();
+  },
+
+  deleteLecture: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE}/api/lectures/${id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) throw new Error("Failed to delete lecture");
   },
 };
 
@@ -366,6 +423,69 @@ export function useQuizQuestions(slideId: string | undefined) {
     queryFn: () => api.getQuizQuestions(slideId!),
     enabled: !!slideId,
     staleTime: 300000, // 5 minutes
+  });
+}
+
+// Lecture hooks
+export function useLectures() {
+  return useQuery({
+    queryKey: ["lectures"],
+    queryFn: api.getLectures,
+    staleTime: 30000, // 30 seconds
+  });
+}
+
+export function useLecturesByUser(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["lectures", "user", userId],
+    queryFn: () => api.getLecturesByUser(userId!),
+    enabled: !!userId,
+    staleTime: 30000, // 30 seconds
+  });
+}
+
+export function useLecture(id: number | undefined) {
+  return useQuery({
+    queryKey: ["lectures", id],
+    queryFn: () => api.getLecture(id!),
+    enabled: !!id,
+    staleTime: 300000, // 5 minutes
+  });
+}
+
+// Lecture mutations
+export function useCreateLecture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: LectureRequest) => api.createLecture(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lectures"] });
+    },
+  });
+}
+
+export function useUpdateLecture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, request }: { id: number; request: LectureRequest }) => 
+      api.updateLecture(id, request),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["lectures", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["lectures"] });
+    },
+  });
+}
+
+export function useDeleteLecture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => api.deleteLecture(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lectures"] });
+    },
   });
 }
 

@@ -65,6 +65,24 @@ services:
     networks:
       - spring-cloud-network
 
+  lecture-service:
+    build:
+      context: ./server/lecture-service
+    environment:
+      - SPRING_APPLICATION_NAME=lecture-service
+      - SERVER_PORT=8083
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=lecture_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    depends_on:
+      - eureka
+      - postgres
+    networks:
+      - spring-cloud-network
+
   weaviate:
     image: cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730
     ports:
@@ -104,8 +122,10 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=document_db
+      - POSTGRES_MULTIPLE_DATABASES=document_db,lecture_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/create-multiple-databases.sh:/docker-entrypoint-initdb.d/create-multiple-databases.sh
     networks:
       - spring-cloud-network
 

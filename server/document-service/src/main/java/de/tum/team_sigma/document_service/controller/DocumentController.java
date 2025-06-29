@@ -58,15 +58,15 @@ public class DocumentController {
             @RequestParam("name") String name,
             @Parameter(description = "Document description")
             @RequestParam(value = "description", required = false) String description,
-            @Parameter(description = "Organization ID")
-            @RequestParam(value = "organizationId", required = false) String organizationId) {
+            @Parameter(description = "Lecture ID")
+            @RequestParam(value = "lectureId", required = false) String lectureId) {
         
         try {
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
             
-            DocumentUploadRequest request = new DocumentUploadRequest(name, description, organizationId);
+            DocumentUploadRequest request = new DocumentUploadRequest(name, description, lectureId);
             DocumentResponse response = documentService.uploadDocument(file, request);
             
             logger.info("Document uploaded successfully: {}", response.getName());
@@ -86,16 +86,16 @@ public class DocumentController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<List<DocumentResponse>> getAllDocuments(
-            @Parameter(description = "Organization ID to filter documents")
-            @RequestParam(value = "organizationId", required = false) String organizationId) {
+            @Parameter(description = "Lecture ID to filter documents")
+            @RequestParam(value = "lectureId", required = false) String lectureId) {
         try {
             List<DocumentResponse> documents;
-            if (organizationId != null && !organizationId.trim().isEmpty()) {
-                documents = documentService.getDocumentsByOrganization(organizationId);
-                logger.info("Retrieved {} documents for organization: {}", documents.size(), organizationId);
+            if (lectureId != null && !lectureId.trim().isEmpty()) {
+                documents = documentService.getDocumentsByLecture(lectureId);
+                logger.info("Retrieved {} documents for lecture: {}", documents.size(), lectureId);
             } else {
                 documents = documentService.getAllDocuments();
-                logger.info("Retrieved {} documents (no organization filter)", documents.size());
+                logger.info("Retrieved {} documents (no lecture filter)", documents.size());
             }
             return ResponseEntity.ok(documents);
         } catch (Exception e) {
@@ -264,6 +264,27 @@ public class DocumentController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             logger.error("Failed to get documents by content type: {}", contentType, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    @DeleteMapping("/lecture/{lectureId}")
+    @Operation(summary = "Delete all documents for a lecture", description = "Delete all documents associated with a specific lecture")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "All documents deleted successfully"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Void> deleteDocumentsByLecture(
+            @Parameter(description = "Lecture ID", required = true)
+            @PathVariable String lectureId) {
+        try {
+            logger.info("Received request to delete all documents for lecture: {}", lectureId);
+            documentService.deleteDocumentsByLecture(lectureId);
+            logger.info("Successfully deleted all documents for lecture: {}", lectureId);
+            return ResponseEntity.noContent().build();
+            
+        } catch (Exception e) {
+            logger.error("Failed to delete documents for lecture: {}", lectureId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

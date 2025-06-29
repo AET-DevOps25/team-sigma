@@ -43,6 +43,7 @@ export function DocumentManager() {
     const metadata: DocumentUploadRequest = {
       name: uploadName.trim(),
       description: uploadDescription.trim() || undefined,
+      lectureId: "mock-id",
     };
 
     try {

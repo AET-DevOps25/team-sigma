@@ -1,19 +1,23 @@
-image:
-  repository: ghcr.io/aet-devops25/team-sigma
-  tag: latest
-
 host: nemo.student.k8s.aet.cit.tum.de
 
 services:
   - name: client
     targetPort: 80
     path: /
+    image: ghcr.io/aet-devops25/team-sigma/client:latest
   - name: api-gateway
     targetPort: 8080
     path: /api
+    image: ghcr.io/aet-devops25/team-sigma/api-gateway:latest
   - name: eureka
     targetPort: 8761
+    image: ghcr.io/aet-devops25/team-sigma/eureka:latest
   - name: hello-service
     targetPort: 8080
+    image: ghcr.io/aet-devops25/team-sigma/hello-service:latest
   - name: document-service
     targetPort: 8080
+    image: ghcr.io/aet-devops25/team-sigma/document-service:latest
+  - name: weaviate
+    targetPort: 8080
+    image: cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730

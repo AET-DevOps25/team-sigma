@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
       - name: {{ .name }}
-        image: {{ $.Values.image.repository }}/{{ .name }}:{{ $.Values.image.tag }}
+        image: {{ .image }}
+        imagePullPolicy: Always
         ports:
         - containerPort: {{ .targetPort }}
 {{- end }} 

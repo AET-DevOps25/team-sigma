@@ -3,8 +3,14 @@ package de.tum.team_sigma.document_service.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "documents")
@@ -49,6 +55,72 @@ public class Document {
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DocumentChunk> chunks;
     
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "conversation", columnDefinition = "jsonb")
+    private List<ConversationMessage> conversation = new ArrayList<>();
+    
+    public static class ConversationMessage {
+        @JsonProperty("messageIndex")
+        private Integer messageIndex;
+        
+        @JsonProperty("messageType")
+        private MessageType messageType;
+        
+        @JsonProperty("content")
+        private String content;
+        
+        @JsonProperty("createdAt")
+        private LocalDateTime createdAt;
+        
+        public enum MessageType {
+            AI, HUMAN
+        }
+        
+        public ConversationMessage() {
+            this.createdAt = LocalDateTime.now();
+        }
+        
+        public ConversationMessage(Integer messageIndex, MessageType messageType, String content) {
+            this();
+            this.messageIndex = messageIndex;
+            this.messageType = messageType;
+            this.content = content;
+        }
+        
+        // Getters and Setters
+        public Integer getMessageIndex() {
+            return messageIndex;
+        }
+        
+        public void setMessageIndex(Integer messageIndex) {
+            this.messageIndex = messageIndex;
+        }
+        
+        public MessageType getMessageType() {
+            return messageType;
+        }
+        
+        public void setMessageType(MessageType messageType) {
+            this.messageType = messageType;
+        }
+        
+        public String getContent() {
+            return content;
+        }
+        
+        public void setContent(String content) {
+            this.content = content;
+        }
+        
+        public LocalDateTime getCreatedAt() {
+            return createdAt;
+        }
+        
+        public void setCreatedAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+        }
+    }
+    
     public Document() {
         this.createdAt = LocalDateTime.now();
     }
@@ -75,6 +147,13 @@ public class Document {
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Helper methods for conversation management
+    public void addMessage(ConversationMessage.MessageType messageType, String content) {
+        Integer nextIndex = conversation.size();
+        ConversationMessage message = new ConversationMessage(nextIndex, messageType, content);
+        conversation.add(message);
     }
     
     // Getters and Setters
@@ -164,5 +243,13 @@ public class Document {
     
     public void setChunks(List<DocumentChunk> chunks) {
         this.chunks = chunks;
+    }
+    
+    public List<ConversationMessage> getConversation() {
+        return conversation;
+    }
+    
+    public void setConversation(List<ConversationMessage> conversation) {
+        this.conversation = conversation;
     }
 } 

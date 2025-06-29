@@ -1,88 +1,69 @@
 import React, { useState, useEffect } from "react";
 import { MessageSquare, Send, User, Bot } from "lucide-react";
 import { Button } from "../ui/button";
-import type { Message, Conversation } from "../../models";
 import type { Document } from "../../hooks/useApi";
 import { useChatMessage } from "../../hooks/useApi";
 import { Textarea } from "../ui/textarea";
+
+interface ConversationMessage {
+  messageIndex: number;
+  messageType: 'ai' | 'human';
+  content: string;
+  createdAt: Date;
+}
 
 interface ChatTabProps {
   document: Document;
 }
 
 const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
-  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const chatMutation = useChatMessage();
 
   useEffect(() => {
-    const newConversation: Conversation = {
-      id: `conv_${document.id}`,
-      slideDeckId: document.id.toString(),
-      messages: [
-        {
-          text: `Hello! I'm here to help you understand "${document.name}". Feel free to ask me any questions about the content.`,
-          isUser: false,
-          timestamp: new Date(),
-        },
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setConversation(newConversation);
+    setConversation([]);
   }, [document]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || !conversation || isWaitingForResponse) return;
+    if (!inputValue.trim() || isWaitingForResponse) return;
 
-    const userMessage: Message = {
-      text: inputValue.trim(),
-      isUser: true,
-      timestamp: new Date(),
+    const userMessage: ConversationMessage = {
+      messageIndex: conversation.length,
+      messageType: 'human',
+      content: inputValue.trim(),
+      createdAt: new Date(),
     };
 
-    // Add user message to conversation
-    const updatedConversation = {
-      ...conversation,
-      messages: [...conversation.messages, userMessage],
-      updatedAt: new Date(),
-    };
-    setConversation(updatedConversation);
+    setConversation(prev => [...prev, userMessage]);
     setInputValue("");
     setIsWaitingForResponse(true);
 
     try {
       const data = await chatMutation.mutateAsync({
-        message: userMessage.text,
+        message: userMessage.content,
         document_id: document.id.toString()
       });
 
-      const aiResponse: Message = {
-        text: data.response,
-        isUser: false,
-        timestamp: new Date(),
+      const aiResponse: ConversationMessage = {
+        messageIndex: conversation.length + 1,
+        messageType: 'ai',
+        content: data.response,
+        createdAt: new Date(),
       };
 
-      setConversation(prev => prev ? {
-        ...prev,
-        messages: [...prev.messages, aiResponse],
-        updatedAt: new Date(),
-      } : null);
+      setConversation(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Chat service error:', error);
-      // Fallback to simulated response if API fails
-      const aiResponse: Message = {
-        text: `Sorry, I'm having trouble connecting to the chat service. This is a fallback response for your question: "${userMessage.text}"`,
-        isUser: false,
-        timestamp: new Date(),
+      const aiResponse: ConversationMessage = {
+        messageIndex: conversation.length + 1,
+        messageType: 'ai',
+        content: `Sorry, I'm having trouble connecting to the chat service. This is a fallback response for your question: "${userMessage.content}"`,
+        createdAt: new Date(),
       };
 
-      setConversation(prev => prev ? {
-        ...prev,
-        messages: [...prev.messages, aiResponse],
-        updatedAt: new Date(),
-      } : null);
+      setConversation(prev => [...prev, aiResponse]);
     } finally {
       setIsWaitingForResponse(false);
     }
@@ -94,14 +75,6 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
       handleSendMessage();
     }
   };
-
-  if (!conversation) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading chat...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -115,40 +88,50 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {conversation.messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
-          >
+        {conversation.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <div className="text-center">
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Start a conversation about "{document.name}"</p>
+              <p className="text-sm mt-1">Ask any questions about the document content</p>
+            </div>
+          </div>
+        ) : (
+          conversation.map((message, index) => (
             <div
-              className={`max-w-[80%] rounded-lg p-3 ${
-                message.isUser
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-800"
-              }`}
+              key={index}
+              className={`flex ${message.messageType === 'human' ? "justify-end" : "justify-start"}`}
             >
-              <div className="flex items-start space-x-2">
-                <div className="flex-shrink-0">
-                  {message.isUser ? (
-                    <User className="h-4 w-4 mt-0.5" />
-                  ) : (
-                    <Bot className="h-4 w-4 mt-0.5" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm">{message.text}</p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      message.isUser ? "text-blue-100" : "text-gray-500"
-                    }`}
-                  >
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.messageType === 'human'
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                <div className="flex items-start space-x-2">
+                  <div className="flex-shrink-0">
+                    {message.messageType === 'human' ? (
+                      <User className="h-4 w-4 mt-0.5" />
+                    ) : (
+                      <Bot className="h-4 w-4 mt-0.5" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm">{message.content}</p>
+                    <p
+                      className={`text-xs mt-1 ${
+                        message.messageType === 'human' ? "text-blue-100" : "text-gray-500"
+                      }`}
+                    >
+                      {message.createdAt.toLocaleTimeString()}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
         
         {isWaitingForResponse && (
           <div className="flex justify-start">
@@ -172,7 +155,7 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
           <Textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder="Ask a question about this document..."
             className="flex-1 resize-none"
             rows={2}

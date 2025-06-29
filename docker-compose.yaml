@@ -51,6 +51,19 @@ services:
     networks:
       - spring-cloud-network
 
+  chat-service:
+    build:
+      context: ./server/chat-service
+    environment:
+      - SPRING_APPLICATION_NAME=chat-service
+      - SERVER_PORT=8082
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - ENVIRONMENT=docker
+    depends_on:
+      - eureka
+    networks:
+      - spring-cloud-network
+
   weaviate:
     image: cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730
     ports:

@@ -26,6 +26,14 @@ public class ApiGatewayApplication {
     }
 
     @Bean
+    public RouterFunction<ServerResponse> chatServiceRouteConfig() {
+        return route("chat-service")
+                .route(path("/api/chat/**"), http())
+                .filter(lb("chat-service"))
+                .build();
+    }
+
+    @Bean
     public RouterFunction<ServerResponse> quizServiceRouteConfig() {
         return route("quiz-service")
                 .route(path("/api/quiz/**"), http())

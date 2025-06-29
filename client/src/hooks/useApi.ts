@@ -44,6 +44,15 @@ export interface DocumentUploadRequest {
   organizationId?: string;
 }
 
+export interface ChatRequest {
+  message: string;
+  document_id: string;
+}
+
+export interface ChatResponse {
+  response: string;
+}
+
 export interface QuizQuestion {
   id: string;
   question: string;
@@ -161,6 +170,19 @@ const api = {
 
   getDocumentPdfUrl: (id: number): string => {
     return `${API_BASE}/api/documents/${id}/download`;
+  },
+
+  // Chat service endpoints
+  sendChatMessage: async (request: ChatRequest): Promise<ChatResponse> => {
+    const response = await fetch(`${API_BASE}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error('Failed to send chat message');
+    return response.json();
   },
 
   // Hello service endpoints
@@ -287,6 +309,13 @@ export function useDeleteDocument() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
+  });
+}
+
+// Chat service hooks
+export function useChatMessage() {
+  return useMutation({
+    mutationFn: (request: ChatRequest) => api.sendChatMessage(request),
   });
 }
 

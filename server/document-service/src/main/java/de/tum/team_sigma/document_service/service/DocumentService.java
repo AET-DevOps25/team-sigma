@@ -69,7 +69,7 @@ public class DocumentService {
                 file.getContentType(),
                 file.getSize(),
                 minioPath,
-                request.getOrganizationId()
+                request.getLectureId()
             );
             document.setDescription(request.getDescription());
             
@@ -166,9 +166,9 @@ public class DocumentService {
     }
     
     @Transactional(readOnly = true)
-    public List<DocumentResponse> getDocumentsByOrganization(String organizationId) {
-        logger.info("Fetching documents for organization: {}", organizationId);
-        return documentRepository.findByOrganizationId(organizationId).stream()
+    public List<DocumentResponse> getDocumentsByLecture(String lectureId) {
+        logger.info("Fetching documents for lecture: {}", lectureId);
+        return documentRepository.findByLectureId(lectureId).stream()
             .map(DocumentResponse::new)
             .collect(Collectors.toList());
     }
@@ -205,23 +205,64 @@ public class DocumentService {
             .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
         
         try {
-            // Delete file from MinIO
-            minioClient.removeObject(
-                RemoveObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(document.getMinioPath())
-                    .build()
-            );
-            logger.info("Deleted file from MinIO: {}", document.getMinioPath());
-            
-            // Delete document from database (cascades to chunks)
-            documentRepository.delete(document);
+            deleteDocumentAndCleanup(document);
             logger.info("Document deleted successfully: {}", document.getName());
             
         } catch (Exception e) {
             logger.error("Failed to delete document: {}", document.getName(), e);
             throw new RuntimeException("Failed to delete document", e);
         }
+    }
+
+    public void deleteDocumentsByLecture(String lectureId) {
+        try {
+            logger.info("Deleting all documents for lecture: {}", lectureId);
+            
+            List<Document> documents = documentRepository.findByLectureId(lectureId);
+            logger.info("Found {} documents to delete for lecture: {}", documents.size(), lectureId);
+            
+            for (Document document : documents) {
+                try {
+                    deleteDocumentAndCleanup(document);
+                    logger.info("Deleted document: {} for lecture: {}", document.getName(), lectureId);
+                } catch (Exception e) {
+                    logger.error("Failed to delete document: {} for lecture: {}", document.getName(), lectureId, e);
+                    // Continue with other documents even if one fails
+                }
+            }
+            
+            logger.info("Completed deletion of documents for lecture: {}", lectureId);
+            
+        } catch (Exception e) {
+            logger.error("Failed to delete documents for lecture: {}", lectureId, e);
+            throw new RuntimeException("Failed to delete documents for lecture", e);
+        }
+    }
+
+    private void deleteDocumentAndCleanup(Document document) throws Exception {
+        // Delete chunks from Weaviate
+        for (DocumentChunk chunk : document.getChunks()) {
+            try {
+                weaviateClient.data().deleter()
+                    .withClassName("DocumentChunk")
+                    .withID(chunk.getWeaviateId())
+                    .run();
+            } catch (Exception e) {
+                logger.warn("Failed to delete chunk from Weaviate: {}", chunk.getWeaviateId(), e);
+            }
+        }
+        
+        // Delete file from MinIO
+        minioClient.removeObject(
+            RemoveObjectArgs.builder()
+                .bucket(bucketName)
+                .object(document.getMinioPath())
+                .build()
+        );
+        logger.info("Deleted file from MinIO: {}", document.getMinioPath());
+        
+        // Delete document from database (cascades to chunks)
+        documentRepository.delete(document);
     }
     
     @Transactional(readOnly = true)

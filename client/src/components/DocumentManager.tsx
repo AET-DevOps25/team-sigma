@@ -10,6 +10,7 @@ import {
   type Document,
   type DocumentUploadRequest,
 } from '../hooks/useApi';
+import { Button } from './ui/button';
 
 export function DocumentManager() {
   // State for forms and UI
@@ -43,6 +44,7 @@ export function DocumentManager() {
     const metadata: DocumentUploadRequest = {
       name: uploadName.trim(),
       description: uploadDescription.trim() || undefined,
+      lectureId: "mock-id",
     };
 
     try {
@@ -137,20 +139,20 @@ export function DocumentManager() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 ml-4">
-                  <button
+                  <Button
                     onClick={() => handleDownload(doc)}
                     disabled={isDownloading}
                     className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50"
                   >
                     {isDownloading ? '⏳' : '📥'} Download
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleDelete(doc.id, doc.name)}
                     disabled={deleteMutation.isPending}
                     className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 disabled:opacity-50"
                   >
                     {deleteMutation.isPending ? '⏳' : '🗑️'} Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

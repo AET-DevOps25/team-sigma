@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, FileText, MessageSquare, HelpCircle, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "../../components/ui/button";
-import { Link } from "@tanstack/react-router";
 import SummaryTab from "../../components/SlideView/SummaryTab";
 import QuizTab from "../../components/SlideView/QuizTab";
 import ChatTab from "../../components/SlideView/ChatTab";
@@ -18,6 +17,7 @@ export const Route = createFileRoute("/_authed/slide/$slideId")({
 
 function SlideView() {
   const { slideId } = useParams({ from: "/_authed/slide/$slideId" });
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"summary" | "quiz" | "chat">("summary");
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -44,9 +44,7 @@ function SlideView() {
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Document not found</h2>
           <p className="text-gray-600 mb-4">The requested document could not be found.</p>
-          <Link to="/">
-            <Button>Go back</Button>
-          </Link>
+          <Button onClick={() => navigate({ to: "/" })}>Go back</Button>
         </div>
       </div>
     );
@@ -99,12 +97,20 @@ function SlideView() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link to="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              if (document.lectureId) {
+                navigate({ to: "/documents/$lectureId", params: { lectureId: document.lectureId } });
+              } else {
+                navigate({ to: "/" });
+              }
+            }}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
           <div className="flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-500" />
             <h1 className="text-xl font-bold text-gray-800">{document.name}</h1>

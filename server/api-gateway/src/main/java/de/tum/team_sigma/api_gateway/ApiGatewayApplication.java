@@ -40,4 +40,12 @@ public class ApiGatewayApplication {
                 .filter(lb("quiz-service"))
                 .build();
     }
+
+    @Bean
+    public RouterFunction<ServerResponse> lectureServiceRouteConfig() {
+        return route("lecture-service")
+                .route(path("/api/lectures/**"), http())
+                .filter(lb("lecture-service"))
+                .build();
+    }
 }

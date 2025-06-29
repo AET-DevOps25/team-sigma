@@ -18,7 +18,7 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     
     List<Document> findByContentType(String contentType);
     
-    List<Document> findByOrganizationId(String organizationId);
+    List<Document> findByLectureId(String lectureId);
     
     @Query("SELECT d FROM Document d LEFT JOIN FETCH d.chunks WHERE d.id = :id")
     Optional<Document> findByIdWithChunks(@Param("id") Long id);

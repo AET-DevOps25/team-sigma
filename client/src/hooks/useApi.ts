@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const API_BASE = 'http://localhost:8080';
+const API_BASE = 'http://localhost:5173';
 
 // Types
 export interface GatewayHealth {

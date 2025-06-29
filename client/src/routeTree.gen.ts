@@ -14,6 +14,7 @@ import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedApiDemoRouteImport } from './routes/_authed/api-demo'
 import { Route as AuthedDocumentIndexRouteImport } from './routes/_authed/document/index'
+import { Route as AuthedSlideSlideIdRouteImport } from './routes/_authed/slide.$slideId'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -39,17 +40,24 @@ const AuthedDocumentIndexRoute = AuthedDocumentIndexRouteImport.update({
   path: '/document/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedSlideSlideIdRoute = AuthedSlideSlideIdRouteImport.update({
+  id: '/slide/$slideId',
+  path: '/slide/$slideId',
+  getParentRoute: () => AuthedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/api-demo': typeof AuthedApiDemoRoute
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/slide/$slideId': typeof AuthedSlideSlideIdRoute
   '/document': typeof AuthedDocumentIndexRoute
 }
 export interface FileRoutesByTo {
   '/api-demo': typeof AuthedApiDemoRoute
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/slide/$slideId': typeof AuthedSlideSlideIdRoute
   '/document': typeof AuthedDocumentIndexRoute
 }
 export interface FileRoutesById {
@@ -58,19 +66,21 @@ export interface FileRoutesById {
   '/_authed/api-demo': typeof AuthedApiDemoRoute
   '/_authed/': typeof AuthedIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/_authed/slide/$slideId': typeof AuthedSlideSlideIdRoute
   '/_authed/document/': typeof AuthedDocumentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/api-demo' | '/' | '/login' | '/document'
+  fullPaths: '/api-demo' | '/' | '/login' | '/slide/$slideId' | '/document'
   fileRoutesByTo: FileRoutesByTo
-  to: '/api-demo' | '/' | '/login' | '/document'
+  to: '/api-demo' | '/' | '/login' | '/slide/$slideId' | '/document'
   id:
     | '__root__'
     | '/_authed'
     | '/_authed/api-demo'
     | '/_authed/'
     | '/login/'
+    | '/_authed/slide/$slideId'
     | '/_authed/document/'
   fileRoutesById: FileRoutesById
 }
@@ -116,18 +126,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDocumentIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/slide/$slideId': {
+      id: '/_authed/slide/$slideId'
+      path: '/slide/$slideId'
+      fullPath: '/slide/$slideId'
+      preLoaderRoute: typeof AuthedSlideSlideIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
   }
 }
 
 interface AuthedRouteChildren {
   AuthedApiDemoRoute: typeof AuthedApiDemoRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedSlideSlideIdRoute: typeof AuthedSlideSlideIdRoute
   AuthedDocumentIndexRoute: typeof AuthedDocumentIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedApiDemoRoute: AuthedApiDemoRoute,
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedSlideSlideIdRoute: AuthedSlideSlideIdRoute,
   AuthedDocumentIndexRoute: AuthedDocumentIndexRoute,
 }
 

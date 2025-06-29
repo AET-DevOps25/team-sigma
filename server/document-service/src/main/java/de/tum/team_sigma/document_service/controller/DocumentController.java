@@ -79,18 +79,27 @@ public class DocumentController {
     }
     
     @GetMapping
-    @Operation(summary = "Get all documents", description = "Retrieve a list of all documents")
+    @Operation(summary = "Get all documents", description = "Retrieve a list of all documents, optionally filtered by organization")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Documents retrieved successfully",
                     content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
+    public ResponseEntity<List<DocumentResponse>> getAllDocuments(
+            @Parameter(description = "Organization ID to filter documents")
+            @RequestParam(value = "organizationId", required = false) String organizationId) {
         try {
-            List<DocumentResponse> documents = documentService.getAllDocuments();
+            List<DocumentResponse> documents;
+            if (organizationId != null && !organizationId.trim().isEmpty()) {
+                documents = documentService.getDocumentsByOrganization(organizationId);
+                logger.info("Retrieved {} documents for organization: {}", documents.size(), organizationId);
+            } else {
+                documents = documentService.getAllDocuments();
+                logger.info("Retrieved {} documents (no organization filter)", documents.size());
+            }
             return ResponseEntity.ok(documents);
         } catch (Exception e) {
-            logger.error("Failed to get all documents", e);
+            logger.error("Failed to get documents", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

@@ -66,8 +66,11 @@ const api = {
   },
 
   // Document service endpoints
-  getDocuments: async (): Promise<Document[]> => {
-    const response = await fetch(`${API_BASE}/api/documents`);
+  getDocuments: async (organizationId?: string): Promise<Document[]> => {
+    const url = organizationId 
+      ? `${API_BASE}/api/documents?organizationId=${encodeURIComponent(organizationId)}`
+      : `${API_BASE}/api/documents`;
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch documents');
     return response.json();
   },
@@ -173,10 +176,10 @@ export function useServiceApiDocs(serviceName: string) {
 }
 
 // Document hooks
-export function useDocuments() {
+export function useDocuments(organizationId?: string) {
   return useQuery({
-    queryKey: ['documents'],
-    queryFn: api.getDocuments,
+    queryKey: ['documents', organizationId],
+    queryFn: () => api.getDocuments(organizationId),
     staleTime: 30000, // 30 seconds
   });
 }

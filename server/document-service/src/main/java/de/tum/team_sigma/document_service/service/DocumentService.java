@@ -179,6 +179,14 @@ public class DocumentService {
     }
     
     @Transactional(readOnly = true)
+    public List<DocumentResponse> getDocumentsByOrganization(String organizationId) {
+        logger.info("Fetching documents for organization: {}", organizationId);
+        return documentRepository.findByOrganizationId(organizationId).stream()
+            .map(DocumentResponse::new)
+            .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
     public DocumentResponse getDocumentById(Long id) {
         Document document = documentRepository.findByIdWithChunks(id)
             .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));

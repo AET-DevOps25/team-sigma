@@ -10,11 +10,9 @@ public class LectureResponse {
     private String createdBy;
     private LocalDateTime createdAt;
     
-    // Default constructor
     public LectureResponse() {
     }
     
-    // Constructor from Lecture entity
     public LectureResponse(Lecture lecture) {
         this.id = lecture.getId();
         this.name = lecture.getName();
@@ -22,7 +20,6 @@ public class LectureResponse {
         this.createdAt = lecture.getCreatedAt();
     }
     
-    // Constructor with all fields
     public LectureResponse(Long id, String name, String createdBy, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
@@ -30,7 +27,6 @@ public class LectureResponse {
         this.createdAt = createdAt;
     }
     
-    // Getters and Setters
     public Long getId() {
         return id;
     }

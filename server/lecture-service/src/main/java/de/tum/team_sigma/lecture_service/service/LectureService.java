@@ -117,28 +117,6 @@ public class LectureService {
     }
 
     @Transactional(readOnly = true)
-    public List<LectureResponse> searchLectures(String keyword) {
-        logger.info("Searching lectures with keyword: {}", keyword);
-        
-        List<Lecture> lectures = lectureRepository.findByNameContainingIgnoreCase(keyword);
-        
-        return lectures.stream()
-                .map(LectureResponse::new)
-                .collect(Collectors.toList());
-    }
-    
-    @Transactional(readOnly = true)
-    public List<LectureResponse> searchLecturesByUser(String userId, String keyword) {
-        logger.info("Searching lectures for user: {} with keyword: {}", userId, keyword);
-        
-        List<Lecture> lectures = lectureRepository.findByCreatedByAndNameContainingIgnoreCase(userId, keyword);
-        
-        return lectures.stream()
-                .map(LectureResponse::new)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
     public List<LectureResponse> getAllLectures() {
         logger.info("Fetching all lectures");
         

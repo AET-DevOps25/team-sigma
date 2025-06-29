@@ -12,17 +12,14 @@ public class LectureRequest {
     @NotBlank(message = "User ID is required")
     private String userId;
     
-    // Default constructor
     public LectureRequest() {
     }
     
-    // Constructor
     public LectureRequest(String name, String userId) {
         this.name = name;
         this.userId = userId;
     }
     
-    // Getters and Setters
     public String getName() {
         return name;
     }

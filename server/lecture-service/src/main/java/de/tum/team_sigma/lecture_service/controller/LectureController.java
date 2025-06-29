@@ -92,28 +92,6 @@ public class LectureController {
         }
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<List<LectureResponse>> searchLectures(@RequestParam String keyword) {
-        try {
-            List<LectureResponse> lectures = lectureService.searchLectures(keyword);
-            return ResponseEntity.ok(lectures);
-        } catch (Exception e) {
-            logger.error("Error searching lectures with keyword: {}", keyword, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GetMapping("/search/user/{userId}")
-    public ResponseEntity<List<LectureResponse>> searchLecturesByUser(@PathVariable String userId, @RequestParam String keyword) {
-        try {
-            List<LectureResponse> lectures = lectureService.searchLecturesByUser(userId, keyword);
-            return ResponseEntity.ok(lectures);
-        } catch (Exception e) {
-            logger.error("Error searching lectures for user: {} with keyword: {}", userId, keyword, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
     @GetMapping
     public ResponseEntity<List<LectureResponse>> getAllLectures() {
         try {

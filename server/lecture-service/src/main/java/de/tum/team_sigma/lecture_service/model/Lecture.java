@@ -20,18 +20,15 @@ public class Lecture {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
-    // Default constructor
     public Lecture() {
     }
     
-    // Constructor
     public Lecture(String name, String createdBy) {
         this.name = name;
         this.createdBy = createdBy;
         this.createdAt = LocalDateTime.now();
     }
     
-    // Getters and Setters
     public Long getId() {
         return id;
     }

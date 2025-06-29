@@ -9,6 +9,10 @@ import {
   type Document,
 } from '../hooks/useApi';
 import DocumentCard from './DocumentCard';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 
 interface DocumentsViewerProps {
   selectedLecture: Lecture;
@@ -89,12 +93,12 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button
+            <Button
+              variant="ghost"
               onClick={onBack}
-              className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
             >
-              ← Back to Lectures
-            </button>
+              ← Back
+            </Button>
             <h2 className="text-xl font-semibold text-gray-800">{selectedLecture.name}</h2>
           </div>
         </div>
@@ -105,12 +109,12 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-800">Slides</h3>
-              <button
+              <Button
                 onClick={() => setShowUploadForm(!showUploadForm)}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
               >
                 {showUploadForm ? 'Cancel Upload' : '📤 Upload Document'}
-              </button>
+              </Button>
             </div>
 
             {showUploadForm && (
@@ -119,10 +123,10 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                   <h4 className="text-md font-semibold text-gray-800">Upload New Document</h4>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-2">
                       Select File *
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="file"
                       onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
@@ -136,10 +140,10 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-2">
                       Document Name *
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="text"
                       value={uploadName}
                       onChange={(e) => setUploadName(e.target.value)}
@@ -150,10 +154,10 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-2">
                       Description (Optional)
-                    </label>
-                    <textarea
+                    </Label>
+                    <Textarea
                       value={uploadDescription}
                       onChange={(e) => setUploadDescription(e.target.value)}
                       placeholder="Add a description to make the document easier to find..."
@@ -162,7 +166,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                     />
                   </div>
 
-                  <button
+                  <Button
                     type="submit"
                     disabled={uploadMutation.isPending || !uploadFile || !uploadName.trim()}
                     className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -177,7 +181,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                         📤 Upload Document
                       </>
                     )}
-                  </button>
+                  </Button>
                 </form>
               </div>
             )}

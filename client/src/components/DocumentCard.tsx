@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { type Document } from "../hooks/useApi";
+import { Button } from "./ui/button";
 
 interface DocumentCardProps {
   document: Document;
@@ -61,30 +62,30 @@ export default function DocumentCard({
         {showActions && (
           <div className="ml-4 flex items-center space-x-2">
             {onDownload && (
-              <button
+              <Button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onDownload(document);
                 }}
                 disabled={isDownloading}
-                className="rounded bg-blue-50 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 disabled:opacity-50"
+                className="bg-blue-50 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 disabled:opacity-50"
               >
                 {isDownloading ? "⏳" : "📥"} Download
-              </button>
+              </Button>
             )}
             {onDelete && (
-              <button
+              <Button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onDelete(document.id, document.name);
                 }}
                 disabled={isDeleting}
-                className="rounded bg-red-50 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                className="bg-red-50 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
               >
                 {isDeleting ? "⏳" : "🗑️"} Delete
-              </button>
+              </Button>
             )}
           </div>
         )}

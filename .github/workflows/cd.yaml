@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [client, eureka, api-gateway, hello-service, document-service]
+        service: [client, eureka, api-gateway, document-service]
         include:
           - service: client
             context: ./client
@@ -27,9 +27,6 @@ jobs:
           - service: api-gateway
             context: ./server/api-gateway
             dockerfile: ./server/api-gateway/Dockerfile
-          - service: hello-service
-            context: ./server/hello-service
-            dockerfile: ./server/hello-service/Dockerfile
           - service: document-service
             context: ./server/document-service
             dockerfile: ./server/document-service/Dockerfile

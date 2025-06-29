@@ -10,7 +10,7 @@ vi.mock('../hooks/useApi', async () => {
     __esModule: true,
     ...original,
     useGatewayHealth: () => ({ data: { service: 'API Gateway', status: 'UP' }, isLoading: false }),
-    useServices: () => ({ data: { services: ['hello-service', 'document-service'] }, isLoading: false }),
+    useServices: () => ({ data: { services: ['document-service'] }, isLoading: false }),
     useServiceApiDocs: () => ({ data: '{"openapi":"3.0.1"}', isLoading: false }),
     useHello: () => ({ data: 'Hello!', isLoading: false }),
     useDocuments: () => ({ data: [], isLoading: false }),

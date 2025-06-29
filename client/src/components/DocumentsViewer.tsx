@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import {
   useDocuments,
   useUploadDocument,
+  useDeleteDocument,
+  useDocumentDownload,
   type Lecture,
   type DocumentUploadRequest,
+  type Document,
 } from '../hooks/useApi';
 import DocumentCard from './DocumentCard';
 
@@ -20,6 +23,8 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
 
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments(selectedLecture.id.toString());
   const uploadMutation = useUploadDocument();
+  const deleteMutation = useDeleteDocument();
+  const { downloadDocument, isDownloading } = useDocumentDownload();
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +52,27 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Upload failed. Please try again.');
+    }
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      await deleteMutation.mutateAsync(id);
+      alert('Document deleted successfully!');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Delete failed. Please try again.');
+    }
+  };
+
+  const handleDownload = async (doc: Document) => {
+    try {
+      await downloadDocument(doc.id, doc.originalFilename);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Download failed. Please try again.');
     }
   };
 
@@ -78,7 +104,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
         <div className="max-w-4xl mx-auto">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">Lecture Materials</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Slides</h3>
               <button
                 onClick={() => setShowUploadForm(!showUploadForm)}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
@@ -169,7 +195,15 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
             ) : documents && documents.length > 0 ? (
               <div className="grid gap-4">
                 {documents.map((doc) => (
-                  <DocumentCard key={doc.id} document={doc} />
+                  <DocumentCard 
+                    key={doc.id} 
+                    document={doc}
+                    showActions={true}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                    isDownloading={isDownloading}
+                    isDeleting={deleteMutation.isPending}
+                  />
                 ))}
               </div>
             ) : (

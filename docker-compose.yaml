@@ -61,6 +61,7 @@ services:
       - ENVIRONMENT=docker
     depends_on:
       - eureka
+      - document-service
     networks:
       - spring-cloud-network
 

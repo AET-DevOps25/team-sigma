@@ -29,7 +29,7 @@ eureka:
 
 # Weaviate configuration
 weaviate:
-  url: ${WEAVIATE_URL:http://localhost:8080}
+  url: ${WEAVIATE_URL:localhost:8080}
 
 # MinIO configuration
 minio:

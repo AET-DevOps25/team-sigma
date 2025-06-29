@@ -46,7 +46,7 @@ services:
       - SPRING_APPLICATION_NAME=document-service
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
-      - WEAVIATE_URL=http://weaviate:8080
+      - WEAVIATE_URL=weaviate:8080
       - MINIO_URL=http://minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin

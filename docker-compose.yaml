@@ -50,10 +50,16 @@ services:
       - MINIO_URL=http://minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=document_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
     depends_on:
       - eureka
       - weaviate
       - minio
+      - postgres
     networks:
       - spring-cloud-network
 

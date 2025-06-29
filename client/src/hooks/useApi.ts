@@ -140,6 +140,10 @@ const api = {
     return response.blob();
   },
 
+  getDocumentPdfUrl: (id: number): string => {
+    return `${API_BASE}/api/documents/${id}/download`;
+  },
+
   // Hello service endpoints
   getHello: async (name?: string): Promise<string> => {
     const url = name ? `${API_BASE}/api/hello/${name}` : `${API_BASE}/api/hello/`;
@@ -286,4 +290,7 @@ export function useDocumentDownload() {
   }, []);
 
   return { downloadDocument, isDownloading };
-} 
+}
+
+// Export helper function for getting PDF URLs
+export const getDocumentPdfUrl = api.getDocumentPdfUrl; 

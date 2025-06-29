@@ -459,8 +459,9 @@ export function useCreateLecture() {
 
   return useMutation({
     mutationFn: (request: LectureRequest) => api.createLecture(request),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["lectures"] });
+      queryClient.invalidateQueries({ queryKey: ["lectures", "user", variables.userId] });
     },
   });
 }
@@ -474,6 +475,7 @@ export function useUpdateLecture() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["lectures", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["lectures"] });
+      queryClient.invalidateQueries({ queryKey: ["lectures", "user", variables.request.userId] });
     },
   });
 }
@@ -485,6 +487,7 @@ export function useDeleteLecture() {
     mutationFn: (id: number) => api.deleteLecture(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lectures"] });
+      queryClient.invalidateQueries({ queryKey: ["lectures", "user"] });
     },
   });
 }

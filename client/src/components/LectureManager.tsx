@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "@tanstack/react-router";
 import {
-  useLectures,
+  useLecturesByUser,
   useCreateLecture,
   useDeleteLecture,
   useUpdateLecture,
@@ -25,11 +25,11 @@ export function LectureManager({}: LectureManagerProps) {
   const { isSignedIn, user, isLoaded } = useUser();
   const navigate = useNavigate();
 
-  const { data: lectures, isLoading: lecturesLoading } = useLectures();
+  const { data: lectures, isLoading: lecturesLoading } = useLecturesByUser(user?.id);
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 py-8">
         <div>Loading...</div>
       </div>
     );
@@ -37,7 +37,7 @@ export function LectureManager({}: LectureManagerProps) {
 
   if (!isSignedIn || !user) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 py-8">
         <div>Sign in to view this page</div>
       </div>
     );
@@ -122,11 +122,22 @@ export function LectureManager({}: LectureManagerProps) {
     setEditName("");
   };
 
-
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="mx-auto max-w-6xl space-y-8 px-4">
+        <div className="mb-4 flex items-center justify-start">
+          <div className="flex items-center space-x-4">
+            <SignOutButton>
+              <Button variant="outline" size="sm">
+                Sign Out
+              </Button>
+            </SignOutButton>
+            <span className="text-sm text-gray-600">
+              Hello, {user.firstName || user.emailAddresses[0]?.emailAddress}
+            </span>
+          </div>
+        </div>
+
         <div className="text-center">
           <h1 className="mb-4 text-4xl font-bold text-gray-900">
             📚 Welcome to Nemo!
@@ -175,7 +186,10 @@ export function LectureManager({}: LectureManagerProps) {
                 selectedLecture={null}
                 onLectureSelect={(lecture) => {
                   if (lecture) {
-                    navigate({ to: "/documents/$lectureId", params: { lectureId: lecture.id.toString() } });
+                    navigate({
+                      to: "/documents/$lectureId",
+                      params: { lectureId: lecture.id.toString() },
+                    });
                   }
                 }}
                 editingLecture={editingLecture}

@@ -11,8 +11,7 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.weaviate.client.WeaviateClient;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.data.embedding.Embedding;
+import io.weaviate.client.v1.graphql.query.argument.NearTextArgument;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,9 +41,6 @@ public class DocumentService {
     private MinioClient minioClient;
     
     @Autowired
-    private EmbeddingModel embeddingModel;
-    
-    @Autowired
     private WeaviateClient weaviateClient;
     
     @Value("${minio.bucket-name}")
@@ -64,6 +60,7 @@ public class DocumentService {
             
             // Extract text content using Tika
             String extractedText = tika.parseToString(file.getInputStream());
+            logger.info("Extracted text: {}", extractedText);
             
             // Create document entity
             Document document = new Document(
@@ -107,16 +104,7 @@ public class DocumentService {
             for (int i = 0; i < chunks.length; i++) {
                 String chunkText = chunks[i].trim();
                 if (!chunkText.isEmpty()) {
-                    // 1. Create embedding vector using LangChain4j
-                    Embedding embedding = embeddingModel.embed(chunkText).content();
-                    // Weaviate client expects Float[] (boxed) rather than primitive float[].
-                    float[] primitiveVector = embedding.vector();
-                    Float[] vector = new Float[primitiveVector.length];
-                    for (int j = 0; j < primitiveVector.length; j++) {
-                        vector[j] = primitiveVector[j];
-                    }
-
-                    // 2. Store vector + metadata in Weaviate and retrieve object ID
+                    // Store text + metadata in Weaviate; vector will be generated automatically by the module
                     String uuid = UUID.randomUUID().toString();
                     weaviateClient.data().creator()
                         .withClassName("DocumentChunk")
@@ -126,7 +114,6 @@ public class DocumentService {
                             "documentId", document.getId(),
                             "chunkIndex", i
                         ))
-                        .withVector(vector)
                         .run();
 
                     DocumentChunk chunk = new DocumentChunk(
@@ -258,19 +245,12 @@ public class DocumentService {
     @Transactional(readOnly = true)
     public List<DocumentResponse> searchSimilarDocuments(String query, int maxResults) {
         try {
-            // 1) Embed the search query to obtain its vector representation
-            Embedding embedding = embeddingModel.embed(query).content();
-            float[] primitiveVector = embedding.vector();
-            Float[] vector = new Float[primitiveVector.length];
-            for (int i = 0; i < primitiveVector.length; i++) {
-                vector[i] = primitiveVector[i];
-            }
-
-            // 2) Build a nearVector GraphQL query against Weaviate for the DocumentChunk class
-            io.weaviate.client.v1.graphql.query.argument.NearVectorArgument nearVector =
-                    io.weaviate.client.v1.graphql.query.argument.NearVectorArgument.builder()
-                            .vector(vector)
-                            .build();
+            logger.info("Starting similarity search for query: '{}', maxResults: {}", query, maxResults);
+            
+            // Build a nearText GraphQL query against Weaviate – it will embed the query internally
+            NearTextArgument nearText = NearTextArgument.builder()
+                    .concepts(new String[]{query})
+                    .build();
 
             // We only need the documentId back – that is enough to fetch full metadata from Postgres later.
             io.weaviate.client.v1.graphql.query.fields.Field documentIdField =
@@ -278,36 +258,49 @@ public class DocumentService {
                             .name("documentId")
                             .build();
 
+            logger.info("Executing Weaviate GraphQL query for DocumentChunk class with limit: {}", maxResults);
+            
             io.weaviate.client.base.Result<io.weaviate.client.v1.graphql.model.GraphQLResponse> result =
                     weaviateClient.graphQL().get()
                             .withClassName("DocumentChunk")
                             .withFields(documentIdField)
-                            .withNearVector(nearVector)
+                            .withNearText(nearText)
                             .withLimit(maxResults)
                             .run();
 
             if (result.hasErrors()) {
+                logger.error("Weaviate query returned errors: {}", result.getError());
                 throw new RuntimeException("Weaviate similarity search failed: " + result.getError());
             }
 
             Object dataObj = result.getResult().getData();
+            logger.info("Weaviate query result data: {}", dataObj);
+            
             if (dataObj == null) {
+                logger.warn("Weaviate query returned null data");
                 return Collections.emptyList();
             }
 
             // The hierarchy of the GraphQL response is: { Get -> { DocumentChunk -> [ { documentId: X }, ... ] } }
             @SuppressWarnings("unchecked")
             Map<String, Object> dataMap = (Map<String, Object>) dataObj;
+            logger.info("Data map keys: {}", dataMap.keySet());
+            
             @SuppressWarnings("unchecked")
             Map<String, Object> getMap = (Map<String, Object>) dataMap.get("Get");
             if (getMap == null) {
+                logger.warn("Get map is null in response");
                 return Collections.emptyList();
             }
+            logger.info("Get map keys: {}", getMap.keySet());
+            
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> chunkList = (List<Map<String, Object>>) getMap.get("DocumentChunk");
             if (chunkList == null) {
+                logger.warn("DocumentChunk list is null in Get map");
                 return Collections.emptyList();
             }
+            logger.info("Found {} DocumentChunk results", chunkList.size());
 
             Set<Long> documentIds = new LinkedHashSet<>();
             for (Map<String, Object> chunk : chunkList) {

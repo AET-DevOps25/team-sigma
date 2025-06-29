@@ -7,9 +7,10 @@ services:
       - QUERY_DEFAULTS_LIMIT=25
       - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
       - PERSISTENCE_DATA_PATH=/var/lib/weaviate
-      - DEFAULT_VECTORIZER_MODULE=none
-      - ENABLE_MODULES=text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai
+      - DEFAULT_VECTORIZER_MODULE=text2vec-transformers
+      - ENABLE_MODULES=text2vec-transformers
       - CLUSTER_HOSTNAME=node1
+      - TRANSFORMERS_INFERENCE_API=http://transformers:8080
     volumes:
       - weaviate_data:/var/lib/weaviate
 
@@ -35,6 +36,15 @@ services:
       - POSTGRES_DB=document_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  transformers:
+    image: semitechnologies/transformers-inference:cpu-2.4.0
+    environment:
+      - MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+      - NUM_THREADS=4
+    networks:
+      - spring-cloud-network
+
 volumes:
   weaviate_data:
   minio_data:

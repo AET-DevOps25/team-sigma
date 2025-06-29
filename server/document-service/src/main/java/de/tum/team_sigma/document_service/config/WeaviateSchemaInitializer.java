@@ -14,8 +14,10 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Ensures that the "DocumentChunk" class (vector index + properties) exists in Weaviate.
- * If the class is missing, it will be created automatically during application startup.
+ * Ensures that the "DocumentChunk" class (vector index + properties) exists in
+ * Weaviate.
+ * If the class is missing, it will be created automatically during application
+ * startup.
  */
 @Component
 public class WeaviateSchemaInitializer implements ApplicationRunner {
@@ -40,23 +42,24 @@ public class WeaviateSchemaInitializer implements ApplicationRunner {
                     .run();
 
             if (!existing.hasErrors() && existing.getResult() != null) {
-                logger.info("Weaviate class '{}' already exists. Skipping creation.", className);
-                return;
+                logger.info("Weaviate class '{}' already exists with vectorizer '{}'. Recreating it to use 'text2vec-openai'.", className, existing.getResult().getVectorizer());
+                // Delete the old class first so we can create it with the desired vectorizer
+                weaviateClient.schema().classDeleter().withClassName(className).run();
             }
         } catch (Exception e) {
-            // An exception likely means the class does not exist; we'll attempt creation
-            logger.info("Weaviate class '{}' not found – will attempt to create it.", className);
+            // swallow – we'll create the class below
+            logger.info("Weaviate class '{}' not found – creating it.", className);
         }
 
         try {
+            // Use Weaviate's built-in text2vec-openai module so that vectors are generated automatically
             WeaviateClass clazz = WeaviateClass.builder()
                     .className(className)
-                    .vectorizer("none")
+                    .vectorizer("text2vec-openai")
                     .properties(List.of(
                             Property.builder().name("text").dataType(List.of("text")).build(),
                             Property.builder().name("documentId").dataType(List.of("int")).build(),
-                            Property.builder().name("chunkIndex").dataType(List.of("int")).build()
-                    ))
+                            Property.builder().name("chunkIndex").dataType(List.of("int")).build()))
                     .build();
 
             weaviateClient.schema().classCreator().withClass(clazz).run();
@@ -65,4 +68,4 @@ public class WeaviateSchemaInitializer implements ApplicationRunner {
             logger.error("Failed to create Weaviate class '{}': {}", className, e.getMessage(), e);
         }
     }
-} 
+}

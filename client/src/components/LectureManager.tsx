@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useUser } from "@clerk/clerk-react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   useLectures,
   useCreateLecture,
@@ -8,27 +9,21 @@ import {
   type Lecture,
   type LectureRequest,
 } from "../hooks/useApi";
-import { DocumentsViewer } from "./DocumentsViewer";
 import { LectureList } from "./LectureList";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
-interface LectureManagerProps {
-  onLectureSelect: (lecture: Lecture | null) => void;
-  selectedLecture: Lecture | null;
-}
+interface LectureManagerProps {}
 
-export function LectureManager({
-  onLectureSelect,
-  selectedLecture,
-}: LectureManagerProps) {
+export function LectureManager({}: LectureManagerProps) {
   const [lectureName, setLectureName] = useState("");
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
   const [editName, setEditName] = useState("");
 
   const { isSignedIn, user, isLoaded } = useUser();
+  const navigate = useNavigate();
 
   const { data: lectures, isLoading: lecturesLoading } = useLectures();
 
@@ -110,10 +105,6 @@ export function LectureManager({
     try {
       await deleteMutation.mutateAsync(id);
 
-      if (selectedLecture?.id === id) {
-        onLectureSelect(null);
-      }
-
       alert("Lecture deleted successfully!");
     } catch (error) {
       console.error("Delete failed:", error);
@@ -131,14 +122,7 @@ export function LectureManager({
     setEditName("");
   };
 
-  if (selectedLecture) {
-    return (
-      <DocumentsViewer
-        selectedLecture={selectedLecture}
-        onBack={() => onLectureSelect(null)}
-      />
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -188,8 +172,12 @@ export function LectureManager({
               <LectureList
                 lectures={lectures || []}
                 loading={lecturesLoading}
-                selectedLecture={selectedLecture}
-                onLectureSelect={onLectureSelect}
+                selectedLecture={null}
+                onLectureSelect={(lecture) => {
+                  if (lecture) {
+                    navigate({ to: "/documents/$lectureId", params: { lectureId: lecture.id.toString() } });
+                  }
+                }}
                 editingLecture={editingLecture}
                 editName={editName}
                 onEditNameChange={setEditName}

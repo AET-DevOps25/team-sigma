@@ -15,6 +15,7 @@ import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedApiDemoRouteImport } from './routes/_authed/api-demo'
 import { Route as AuthedDocumentIndexRouteImport } from './routes/_authed/document/index'
 import { Route as AuthedSlideSlideIdRouteImport } from './routes/_authed/slide.$slideId'
+import { Route as AuthedDocumentsLectureIdRouteImport } from './routes/_authed/documents/$lectureId'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -45,11 +46,18 @@ const AuthedSlideSlideIdRoute = AuthedSlideSlideIdRouteImport.update({
   path: '/slide/$slideId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedDocumentsLectureIdRoute =
+  AuthedDocumentsLectureIdRouteImport.update({
+    id: '/documents/$lectureId',
+    path: '/documents/$lectureId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/api-demo': typeof AuthedApiDemoRoute
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/documents/$lectureId': typeof AuthedDocumentsLectureIdRoute
   '/slide/$slideId': typeof AuthedSlideSlideIdRoute
   '/document': typeof AuthedDocumentIndexRoute
 }
@@ -57,6 +65,7 @@ export interface FileRoutesByTo {
   '/api-demo': typeof AuthedApiDemoRoute
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginIndexRoute
+  '/documents/$lectureId': typeof AuthedDocumentsLectureIdRoute
   '/slide/$slideId': typeof AuthedSlideSlideIdRoute
   '/document': typeof AuthedDocumentIndexRoute
 }
@@ -66,20 +75,34 @@ export interface FileRoutesById {
   '/_authed/api-demo': typeof AuthedApiDemoRoute
   '/_authed/': typeof AuthedIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/_authed/documents/$lectureId': typeof AuthedDocumentsLectureIdRoute
   '/_authed/slide/$slideId': typeof AuthedSlideSlideIdRoute
   '/_authed/document/': typeof AuthedDocumentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/api-demo' | '/' | '/login' | '/slide/$slideId' | '/document'
+  fullPaths:
+    | '/api-demo'
+    | '/'
+    | '/login'
+    | '/documents/$lectureId'
+    | '/slide/$slideId'
+    | '/document'
   fileRoutesByTo: FileRoutesByTo
-  to: '/api-demo' | '/' | '/login' | '/slide/$slideId' | '/document'
+  to:
+    | '/api-demo'
+    | '/'
+    | '/login'
+    | '/documents/$lectureId'
+    | '/slide/$slideId'
+    | '/document'
   id:
     | '__root__'
     | '/_authed'
     | '/_authed/api-demo'
     | '/_authed/'
     | '/login/'
+    | '/_authed/documents/$lectureId'
     | '/_authed/slide/$slideId'
     | '/_authed/document/'
   fileRoutesById: FileRoutesById
@@ -133,12 +156,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSlideSlideIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/documents/$lectureId': {
+      id: '/_authed/documents/$lectureId'
+      path: '/documents/$lectureId'
+      fullPath: '/documents/$lectureId'
+      preLoaderRoute: typeof AuthedDocumentsLectureIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
   }
 }
 
 interface AuthedRouteChildren {
   AuthedApiDemoRoute: typeof AuthedApiDemoRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedDocumentsLectureIdRoute: typeof AuthedDocumentsLectureIdRoute
   AuthedSlideSlideIdRoute: typeof AuthedSlideSlideIdRoute
   AuthedDocumentIndexRoute: typeof AuthedDocumentIndexRoute
 }
@@ -146,6 +177,7 @@ interface AuthedRouteChildren {
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedApiDemoRoute: AuthedApiDemoRoute,
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedDocumentsLectureIdRoute: AuthedDocumentsLectureIdRoute,
   AuthedSlideSlideIdRoute: AuthedSlideSlideIdRoute,
   AuthedDocumentIndexRoute: AuthedDocumentIndexRoute,
 }

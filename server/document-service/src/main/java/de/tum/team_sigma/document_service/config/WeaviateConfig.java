@@ -14,6 +14,7 @@ public class WeaviateConfig {
 
     @Bean
     public WeaviateClient weaviateClient() {
+        // Expect weaviateUrl in the form "host:port" (e.g., "weaviate:8080")
         Config config = new Config("http", weaviateUrl);
         return new WeaviateClient(config);
     }

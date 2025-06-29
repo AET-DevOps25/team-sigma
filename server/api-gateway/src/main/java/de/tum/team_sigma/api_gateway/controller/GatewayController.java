@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@CrossOrigin(origins = "*")
 @Tag(name = "Gateway Management", description = "API Gateway information and health endpoints")
 public class GatewayController {
 

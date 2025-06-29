@@ -4,17 +4,9 @@ spring:
 
   cloud:
     gateway:
-      routes:
-        - id: document-service-api
-          uri: http://document-service:8080
-          predicates:
-            - Path=/api/documents/**, /api/documents
-          filters:
-            # Preserve the full path so that "/api/documents" reaches the backend unmodified
-            - StripPrefix=0
       globalcors:
         corsConfigurations:
-          '[/**]':
+          "[/**]":
             allowedOrigins:
               - "*"
             allowedMethods:

@@ -1,0 +1,54 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-ApiGatewayApplication<api-gateway>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "de.tum.team_sigma.api_gateway.ApiGatewayApplication",
+      "projectName": "api-gateway",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-DocumentServiceApplication<document-service>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "de.tum.team_sigma.document_service.DocumentServiceApplication",
+      "projectName": "document-service",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-EurekaApplication<eureka>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "de.tum.team_sigma.eureka.EurekaApplication",
+      "projectName": "eureka",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-GenaiServiceApplication<genai-service>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "de.tum.team_sigma.genai_service.GenaiServiceApplication",
+      "projectName": "genai-service",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-QuizServiceApplication<quiz-service>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "de.tum.team_sigma.quiz_service.QuizServiceApplication",
+      "projectName": "quiz-service",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

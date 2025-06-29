@@ -16,7 +16,15 @@ jobs:
 
     strategy:
       matrix:
-        service: [client, eureka, api-gateway, document-service, quiz-service]
+        service:
+          [
+            client,
+            eureka,
+            api-gateway,
+            document-service,
+            quiz-service,
+            genai-service,
+          ]
         include:
           - service: client
             context: ./client
@@ -33,6 +41,9 @@ jobs:
           - service: quiz-service
             context: ./server/quiz-service
             dockerfile: ./server/quiz-service/Dockerfile
+          - service: genai-service
+            context: ./server/genai-service
+            dockerfile: ./server/genai-service/Dockerfile
 
     steps:
       - name: Checkout repository

@@ -3,7 +3,8 @@
 
 run-dev:
 	@echo "Starting all services in parallel..."
-	@parallel --line-buffer --colsep '\t' --tagstring '[{1}]' '{2}' ::: \
+	@trap 'echo "Shutting down all services..."; kill -9 0' INT TERM; \
+	parallel --halt now,fail=1 --line-buffer --colsep '\t' --tagstring '[{1}]' '{2}' ::: \
 		'docker	docker compose -f docker-compose.dev.yaml up --build' \
 		'client	cd client && bun i && bun dev' \
 		'eureka	cd server/eureka && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
@@ -11,6 +12,7 @@ run-dev:
 		'document-service	cd server/document-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
 		'quiz-service	cd server/quiz-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
 		'chat-service	cd server/chat-service && watchexec -r -e python,yml,yaml ./gradlew bootRun'
+		'genai-service	cd server/genai-service && watchexec -r -e java,yml,yaml ./gradlew bootRun'
 
 # Directories of all server microservices that contain a Gradle wrapper
 SERVER_SERVICES := \

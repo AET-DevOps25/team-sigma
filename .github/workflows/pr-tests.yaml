@@ -36,7 +36,8 @@ jobs:
 
     strategy:
       matrix:
-        service: [eureka, api-gateway, document-service, quiz-service]
+        service:
+          [eureka, api-gateway, document-service, quiz-service, genai-service]
         include:
           - service: eureka
             working-directory: ./server/eureka
@@ -46,7 +47,8 @@ jobs:
             working-directory: ./server/document-service
           - service: quiz-service
             working-directory: ./server/quiz-service
-
+          - service: genai-service
+            working-directory: ./server/genai-service
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

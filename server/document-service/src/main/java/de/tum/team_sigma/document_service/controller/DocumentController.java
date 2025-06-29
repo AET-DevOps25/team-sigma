@@ -57,14 +57,16 @@ public class DocumentController {
             @Parameter(description = "Document name", required = true)
             @RequestParam("name") String name,
             @Parameter(description = "Document description")
-            @RequestParam(value = "description", required = false) String description) {
+            @RequestParam(value = "description", required = false) String description,
+            @Parameter(description = "Organization ID")
+            @RequestParam(value = "organizationId", required = false) String organizationId) {
         
         try {
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
             
-            DocumentUploadRequest request = new DocumentUploadRequest(name, description);
+            DocumentUploadRequest request = new DocumentUploadRequest(name, description, organizationId);
             DocumentResponse response = documentService.uploadDocument(file, request);
             
             logger.info("Document uploaded successfully: {}", response.getName());

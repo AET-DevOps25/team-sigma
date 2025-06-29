@@ -132,7 +132,7 @@ export function DocumentManager() {
                   <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                     <span>📁 {doc.originalFilename}</span>
                     <span>📊 {formatFileSize(doc.fileSize)}</span>
-                    <span>📅 {formatDate(doc.uploadDate)}</span>
+                    <span>📅 {formatDate(doc.createdAt)}</span>
                     <span>🏷️ {doc.contentType}</span>
                   </div>
                 </div>

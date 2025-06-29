@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { OrganizationSwitcher } from "@clerk/clerk-react";
+import { OrganizationSwitcher, useOrganization } from "@clerk/clerk-react";
 import { Button } from "../ui/button";
 import { Upload } from "lucide-react";
 import {
@@ -10,13 +10,20 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "../ui/dialog";
+import {
+  useUploadDocument,
+  type DocumentUploadRequest,
+} from "../../hooks/useApi";
 
 const AppHeader: React.FC = () => {
+  const { organization } = useOrganization();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadName, setUploadName] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+  
+  // API mutations
+  const uploadMutation = useUploadDocument();
 
   // Format file size
   const formatFileSize = (bytes: number): string => {
@@ -35,24 +42,14 @@ const AppHeader: React.FC = () => {
       return;
     }
 
-    setIsUploading(true);
+    const metadata: DocumentUploadRequest = {
+      name: uploadName.trim(),
+      description: uploadDescription.trim() || undefined,
+      organizationId: organization?.id,
+    };
 
     try {
-      // TODO: Replace with actual upload API call
-      const fileItem = {
-        id: `file_${Date.now()}_${Math.random()}`,
-        name: uploadName.trim(),
-        description: uploadDescription.trim() || undefined,
-        originalFilename: uploadFile.name,
-        type: uploadFile.type,
-        size: uploadFile.size,
-        uploadDate: new Date().toISOString(),
-      };
-      
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('File uploaded:', fileItem);
+      await uploadMutation.mutateAsync({ file: uploadFile, metadata });
       
       // Reset form
       setUploadFile(null);
@@ -64,8 +61,6 @@ const AppHeader: React.FC = () => {
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Upload failed. Please try again.');
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -167,10 +162,10 @@ const AppHeader: React.FC = () => {
                 <DialogFooter>
                   <button
                     type="submit"
-                    disabled={isUploading || !uploadFile || !uploadName.trim()}
+                    disabled={uploadMutation.isPending || !uploadFile || !uploadName.trim()}
                     className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isUploading ? (
+                    {uploadMutation.isPending ? (
                       <>
                         <span className="animate-spin mr-2">⏳</span>
                         Uploading...

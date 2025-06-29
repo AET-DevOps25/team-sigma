@@ -2,12 +2,6 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME:document-service}
 
-  # File upload configuration
-  servlet:
-    multipart:
-      max-file-size: 100MB
-      max-request-size: 100MB
-
   # Database configuration
   datasource:
     url: ${POSTGRESQL_URL:jdbc:postgresql://localhost:5432/document_db}

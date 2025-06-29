@@ -27,6 +27,6 @@ public class HelloController {
     public String hello(
             @Parameter(description = "Name for personalized greeting", required = true)
             @PathVariable String name) {
-        return "Hello " + name + "!";
+        return "Hello " + name + "!!";
     }
 }

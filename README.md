@@ -33,3 +33,11 @@ bun dev
 ```
 
 The client application should now be accessible at http://localhost:5713.
+
+
+## Setup
+add an openai key
+
+```
+export OPENAI_API_KEY=sk_xxx
+```

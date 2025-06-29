@@ -88,12 +88,12 @@ jobs:
       - name: Deploy with Helm
         run: |
           helm upgrade team-sigma ./infra/helm/team-sigma \
-            --namespace team-sigma \
+            --namespace nemo \
             --wait \
             --timeout=5m
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n team-sigma
-          kubectl get services -n team-sigma
-          kubectl get ingress -n team-sigma
+          kubectl get pods -n nemo
+          kubectl get services -n nemo
+          kubectl get ingress -n nemo

@@ -249,21 +249,84 @@ public class DocumentService {
     @Transactional(readOnly = true)
     public List<DocumentResponse> searchSimilarDocuments(String query, int maxResults) {
         try {
-            // Simple text-based search in chunks (will be replaced with vector search later)
-            List<DocumentChunk> matchingChunks = documentChunkRepository.findAll().stream()
-                    .filter(chunk -> chunk.getChunkText().toLowerCase().contains(query.toLowerCase()))
-                    .limit(maxResults)
-                    .collect(Collectors.toList());
+            // 1) Embed the search query to obtain its vector representation
+            Embedding embedding = embeddingModel.embed(query).content();
+            float[] primitiveVector = embedding.vector();
+            Float[] vector = new Float[primitiveVector.length];
+            for (int i = 0; i < primitiveVector.length; i++) {
+                vector[i] = primitiveVector[i];
+            }
 
-            Set<Long> documentIds = matchingChunks.stream()
-                    .map(chunk -> chunk.getDocument().getId())
-                    .collect(Collectors.toSet());
+            // 2) Build a nearVector GraphQL query against Weaviate for the DocumentChunk class
+            io.weaviate.client.v1.graphql.query.argument.NearVectorArgument nearVector =
+                    io.weaviate.client.v1.graphql.query.argument.NearVectorArgument.builder()
+                            .vector(vector)
+                            .build();
+
+            // We only need the documentId back – that is enough to fetch full metadata from Postgres later.
+            io.weaviate.client.v1.graphql.query.fields.Field documentIdField =
+                    io.weaviate.client.v1.graphql.query.fields.Field.builder()
+                            .name("documentId")
+                            .build();
+
+            io.weaviate.client.base.Result<io.weaviate.client.v1.graphql.model.GraphQLResponse> result =
+                    weaviateClient.graphQL().get()
+                            .withClassName("DocumentChunk")
+                            .withFields(documentIdField)
+                            .withNearVector(nearVector)
+                            .withLimit(maxResults)
+                            .run();
+
+            if (result.hasErrors()) {
+                throw new RuntimeException("Weaviate similarity search failed: " + result.getError());
+            }
+
+            Object dataObj = result.getResult().getData();
+            if (dataObj == null) {
+                return Collections.emptyList();
+            }
+
+            // The hierarchy of the GraphQL response is: { Get -> { DocumentChunk -> [ { documentId: X }, ... ] } }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> dataMap = (Map<String, Object>) dataObj;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> getMap = (Map<String, Object>) dataMap.get("Get");
+            if (getMap == null) {
+                return Collections.emptyList();
+            }
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> chunkList = (List<Map<String, Object>>) getMap.get("DocumentChunk");
+            if (chunkList == null) {
+                return Collections.emptyList();
+            }
+
+            Set<Long> documentIds = new LinkedHashSet<>();
+            for (Map<String, Object> chunk : chunkList) {
+                Object docIdObj = chunk.get("documentId");
+                if (docIdObj != null) {
+                    try {
+                        Long docId = Long.valueOf(docIdObj.toString());
+                        documentIds.add(docId);
+                    } catch (NumberFormatException ignored) {
+                        // Skip malformed id values
+                    }
+                }
+            }
 
             return documentIds.stream()
-                    .map(this::getDocumentById)
+                    .map(id -> {
+                        try {
+                            return getDocumentById(id);
+                        } catch (Exception e) {
+                            logger.warn("Document id {} referenced in Weaviate but not found in DB", id);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
+
         } catch (Exception e) {
-            logger.error("Failed to search similar documents for query: {}", query, e);
+            logger.error("Failed to perform vector similarity search for query: {}", query, e);
             throw new RuntimeException("Failed to search similar documents", e);
         }
     }

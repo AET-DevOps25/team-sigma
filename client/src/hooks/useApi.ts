@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const API_BASE = 'http://localhost:8080';
+export const API_BASE = 'http://localhost:8080';
 
 // Types
 export interface GatewayHealth {
@@ -140,6 +140,11 @@ const api = {
     return response.blob();
   },
 
+  // Helper function to get PDF URL for viewing
+  getDocumentPdfUrl: (id: number): string => {
+    return `${API_BASE}/api/documents/${id}/download`;
+  },
+
   // Hello service endpoints
   getHello: async (name?: string): Promise<string> => {
     const url = name ? `${API_BASE}/api/hello/${name}` : `${API_BASE}/api/hello/`;
@@ -256,6 +261,9 @@ export function useHello(name?: string) {
     staleTime: 60000, // 1 minute
   });
 }
+
+// Export helper function for getting PDF URLs
+export const getDocumentPdfUrl = api.getDocumentPdfUrl;
 
 // Custom hook for file download
 export function useDocumentDownload() {

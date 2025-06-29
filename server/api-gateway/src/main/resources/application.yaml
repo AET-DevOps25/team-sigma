@@ -26,7 +26,7 @@ spring:
               - "HEAD"
             allowedHeaders:
               - "*"
-            allowCredentials: true
+            allowCredentials: false
 
 server:
   port: ${SERVER_PORT:8080}

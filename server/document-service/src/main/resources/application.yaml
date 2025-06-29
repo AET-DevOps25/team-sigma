@@ -2,7 +2,7 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME:document-service}
 
-  # Database configuration  
+  # Database configuration
   datasource:
     url: jdbc:postgresql://postgres:5432/document_db
     username: postgres
@@ -18,6 +18,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:10MB}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -36,3 +41,4 @@ minio:
   url: ${MINIO_URL:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name: ${MINIO_BUCKET_NAME:documents}

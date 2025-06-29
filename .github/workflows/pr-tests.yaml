@@ -36,14 +36,12 @@ jobs:
 
     strategy:
       matrix:
-        service: [eureka, api-gateway, hello-service, document-service]
+        service: [eureka, api-gateway, document-service]
         include:
           - service: eureka
             working-directory: ./server/eureka
           - service: api-gateway
             working-directory: ./server/api-gateway
-          - service: hello-service
-            working-directory: ./server/hello-service
           - service: document-service
             working-directory: ./server/document-service
 

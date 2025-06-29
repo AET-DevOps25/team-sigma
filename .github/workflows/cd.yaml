@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [client, eureka, api-gateway, document-service]
+        service: [client, eureka, api-gateway, document-service, quiz-service]
         include:
           - service: client
             context: ./client
@@ -30,6 +30,9 @@ jobs:
           - service: document-service
             context: ./server/document-service
             dockerfile: ./server/document-service/Dockerfile
+          - service: quiz-service
+            context: ./server/quiz-service
+            dockerfile: ./server/quiz-service/Dockerfile
 
     steps:
       - name: Checkout repository

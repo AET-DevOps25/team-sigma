@@ -2,7 +2,14 @@
         test-api-gateway test-document-service test-eureka test-hello-service
 
 run-dev:
-	docker compose up --build
+	@echo "Starting all services in parallel..."
+	@parallel --line-buffer --colsep '\t' --tagstring '[{1}]' '{2}' ::: \
+		'docker	docker compose -f docker-compose.dev.yaml up --build' \
+		'client	cd client && bun i && bun dev' \
+		'eureka	cd server/eureka && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
+		'api-gateway	cd server/api-gateway && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
+		'document-service	cd server/document-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
+		'hello-service	cd server/hello-service && watchexec -r -e java,yml,yaml ./gradlew bootRun'
 
 # Directories of all server microservices that contain a Gradle wrapper
 SERVER_SERVICES := \

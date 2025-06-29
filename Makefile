@@ -9,7 +9,8 @@ run-dev:
 		'eureka	cd server/eureka && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
 		'api-gateway	cd server/api-gateway && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
 		'document-service	cd server/document-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
-		'hello-service	cd server/hello-service && watchexec -r -e java,yml,yaml ./gradlew bootRun'
+		'hello-service	cd server/hello-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
+		'quiz-service	cd server/quiz-service && watchexec -r -e java,yml,yaml ./gradlew bootRun'
 
 # Directories of all server microservices that contain a Gradle wrapper
 SERVER_SERVICES := \

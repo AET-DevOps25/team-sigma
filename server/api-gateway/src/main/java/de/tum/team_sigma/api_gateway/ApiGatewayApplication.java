@@ -32,4 +32,12 @@ public class ApiGatewayApplication {
                 .filter(lb("document-service"))
                 .build();
     }
+
+    @Bean
+    public RouterFunction<ServerResponse> quizServiceRouteConfig() {
+        return route("quiz-service")
+                .route(path("/api/quiz/**"), http())
+                .filter(lb("quiz-service"))
+                .build();
+    }
 }

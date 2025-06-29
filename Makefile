@@ -2,7 +2,7 @@
         test-api-gateway test-document-service test-eureka test-hello-service
 
 run-dev:
-	docker compose up --build
+	docker compose -f docker-compose.dev.yaml up --build
 
 # Directories of all server microservices that contain a Gradle wrapper
 SERVER_SERVICES := \

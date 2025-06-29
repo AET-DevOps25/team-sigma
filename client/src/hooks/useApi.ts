@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_BASE = 'http://localhost:5173';
+const API_BASE = "http://localhost:5173";
 
 // Types
 export interface GatewayHealth {
@@ -44,99 +44,118 @@ export interface DocumentUploadRequest {
   organizationId?: string;
 }
 
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+}
+
 // API functions
 const api = {
   // Gateway endpoints
   getGatewayHealth: async (): Promise<GatewayHealth> => {
     const response = await fetch(`${API_BASE}/api/gateway/health`);
-    if (!response.ok) throw new Error('Failed to fetch gateway health');
+    if (!response.ok) throw new Error("Failed to fetch gateway health");
     return response.json();
   },
 
   getServices: async (): Promise<ServicesResponse> => {
     const response = await fetch(`${API_BASE}/api/gateway/services`);
-    if (!response.ok) throw new Error('Failed to fetch services');
+    if (!response.ok) throw new Error("Failed to fetch services");
     return response.json();
   },
 
   getServiceApiDocs: async (serviceName: string): Promise<string> => {
     const response = await fetch(`${API_BASE}/api/${serviceName}/v3/api-docs`);
-    if (!response.ok) throw new Error('Failed to fetch service API docs');
+    if (!response.ok) throw new Error("Failed to fetch service API docs");
     return response.text();
   },
 
   // Document service endpoints
   getDocuments: async (organizationId?: string): Promise<Document[]> => {
-    const url = organizationId 
+    const url = organizationId
       ? `${API_BASE}/api/documents?organizationId=${encodeURIComponent(organizationId)}`
       : `${API_BASE}/api/documents`;
     const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch documents');
+    if (!response.ok) throw new Error("Failed to fetch documents");
     return response.json();
   },
 
   getDocument: async (id: number): Promise<Document> => {
     const response = await fetch(`${API_BASE}/api/documents/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch document');
+    if (!response.ok) throw new Error("Failed to fetch document");
     return response.json();
   },
 
-  uploadDocument: async (file: File, metadata: DocumentUploadRequest): Promise<Document> => {
+  uploadDocument: async (
+    file: File,
+    metadata: DocumentUploadRequest
+  ): Promise<Document> => {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', metadata.name);
+    formData.append("file", file);
+    formData.append("name", metadata.name);
     if (metadata.description) {
-      formData.append('description', metadata.description);
+      formData.append("description", metadata.description);
     }
     if (metadata.organizationId) {
-      formData.append('organizationId', metadata.organizationId);
+      formData.append("organizationId", metadata.organizationId);
     }
 
     const response = await fetch(`${API_BASE}/api/documents/upload`, {
-      method: 'POST',
+      method: "POST",
       body: formData,
     });
 
-    if (!response.ok) throw new Error('Failed to upload document');
+    if (!response.ok) throw new Error("Failed to upload document");
     return response.json();
   },
 
   searchDocuments: async (query: string): Promise<Document[]> => {
-    const response = await fetch(`${API_BASE}/api/documents/search?q=${encodeURIComponent(query)}`);
-    if (!response.ok) throw new Error('Failed to search documents');
+    const response = await fetch(
+      `${API_BASE}/api/documents/search?q=${encodeURIComponent(query)}`
+    );
+    if (!response.ok) throw new Error("Failed to search documents");
     return response.json();
   },
 
-  searchSimilarDocuments: async (query: string, limit = 10): Promise<Document[]> => {
+  searchSimilarDocuments: async (
+    query: string,
+    limit = 10
+  ): Promise<Document[]> => {
     const response = await fetch(
       `${API_BASE}/api/documents/search/similar?q=${encodeURIComponent(query)}&limit=${limit}`
     );
-    if (!response.ok) throw new Error('Failed to search similar documents');
+    if (!response.ok) throw new Error("Failed to search similar documents");
     return response.json();
   },
 
-  updateDocument: async (id: number, metadata: DocumentUploadRequest): Promise<Document> => {
+  updateDocument: async (
+    id: number,
+    metadata: DocumentUploadRequest
+  ): Promise<Document> => {
     const response = await fetch(`${API_BASE}/api/documents/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(metadata),
     });
 
-    if (!response.ok) throw new Error('Failed to update document');
+    if (!response.ok) throw new Error("Failed to update document");
     return response.json();
   },
 
   deleteDocument: async (id: number): Promise<void> => {
     const response = await fetch(`${API_BASE}/api/documents/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
 
-    if (!response.ok) throw new Error('Failed to delete document');
+    if (!response.ok) throw new Error("Failed to delete document");
   },
 
   downloadDocument: async (id: number): Promise<Blob> => {
     const response = await fetch(`${API_BASE}/api/documents/${id}/download`);
-    if (!response.ok) throw new Error('Failed to download document');
+    if (!response.ok) throw new Error("Failed to download document");
     return response.blob();
   },
 
@@ -146,17 +165,26 @@ const api = {
 
   // Hello service endpoints
   getHello: async (name?: string): Promise<string> => {
-    const url = name ? `${API_BASE}/api/hello/${name}` : `${API_BASE}/api/hello/`;
+    const url = name
+      ? `${API_BASE}/api/hello/${name}`
+      : `${API_BASE}/api/hello/`;
     const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch hello');
+    if (!response.ok) throw new Error("Failed to fetch hello");
     return response.text();
+  },
+
+  // Quiz service endpoints
+  getQuizQuestions: async (slideId: string): Promise<QuizQuestion[]> => {
+    const response = await fetch(`${API_BASE}/api/quiz/${slideId}`);
+    if (!response.ok) throw new Error("Failed to fetch quiz questions");
+    return response.json();
   },
 };
 
 // Gateway hooks
 export function useGatewayHealth() {
   return useQuery({
-    queryKey: ['gateway', 'health'],
+    queryKey: ["gateway", "health"],
     queryFn: api.getGatewayHealth,
     staleTime: 30000, // 30 seconds
   });
@@ -164,7 +192,7 @@ export function useGatewayHealth() {
 
 export function useServices() {
   return useQuery({
-    queryKey: ['gateway', 'services'],
+    queryKey: ["gateway", "services"],
     queryFn: api.getServices,
     staleTime: 60000, // 1 minute
   });
@@ -172,7 +200,7 @@ export function useServices() {
 
 export function useServiceApiDocs(serviceName: string) {
   return useQuery({
-    queryKey: ['gateway', 'api-docs', serviceName],
+    queryKey: ["gateway", "api-docs", serviceName],
     queryFn: () => api.getServiceApiDocs(serviceName),
     enabled: !!serviceName,
     staleTime: 300000, // 5 minutes
@@ -182,7 +210,7 @@ export function useServiceApiDocs(serviceName: string) {
 // Document hooks
 export function useDocuments(organizationId?: string) {
   return useQuery({
-    queryKey: ['documents', organizationId],
+    queryKey: ["documents", organizationId],
     queryFn: () => api.getDocuments(organizationId),
     staleTime: 30000, // 30 seconds
   });
@@ -190,7 +218,7 @@ export function useDocuments(organizationId?: string) {
 
 export function useDocument(id: number | undefined) {
   return useQuery({
-    queryKey: ['documents', id],
+    queryKey: ["documents", id],
     queryFn: () => api.getDocument(id!),
     enabled: !!id,
     staleTime: 300000, // 5 minutes
@@ -199,7 +227,7 @@ export function useDocument(id: number | undefined) {
 
 export function useDocumentSearch(query: string) {
   return useQuery({
-    queryKey: ['documents', 'search', query],
+    queryKey: ["documents", "search", query],
     queryFn: () => api.searchDocuments(query),
     enabled: !!query.trim(),
     staleTime: 30000, // 30 seconds
@@ -208,7 +236,7 @@ export function useDocumentSearch(query: string) {
 
 export function useSimilarDocuments(query: string, limit = 10) {
   return useQuery({
-    queryKey: ['documents', 'similar', query, limit],
+    queryKey: ["documents", "similar", query, limit],
     queryFn: () => api.searchSimilarDocuments(query, limit),
     enabled: !!query.trim(),
     staleTime: 30000, // 30 seconds
@@ -218,36 +246,46 @@ export function useSimilarDocuments(query: string, limit = 10) {
 // Document mutations
 export function useUploadDocument() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ file, metadata }: { file: File; metadata: DocumentUploadRequest }) =>
-      api.uploadDocument(file, metadata),
+    mutationFn: ({
+      file,
+      metadata,
+    }: {
+      file: File;
+      metadata: DocumentUploadRequest;
+    }) => api.uploadDocument(file, metadata),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 }
 
 export function useUpdateDocument() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, metadata }: { id: number; metadata: DocumentUploadRequest }) =>
-      api.updateDocument(id, metadata),
+    mutationFn: ({
+      id,
+      metadata,
+    }: {
+      id: number;
+      metadata: DocumentUploadRequest;
+    }) => api.updateDocument(id, metadata),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['documents', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ["documents", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 }
 
 export function useDeleteDocument() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (id: number) => api.deleteDocument(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 }
@@ -255,7 +293,7 @@ export function useDeleteDocument() {
 // Hello service hooks
 export function useHello(name?: string) {
   return useQuery({
-    queryKey: ['hello', name],
+    queryKey: ["hello", name],
     queryFn: () => api.getHello(name),
     staleTime: 60000, // 1 minute
   });
@@ -269,20 +307,20 @@ export function useDocumentDownload() {
     setIsDownloading(true);
     try {
       const blob = await api.downloadDocument(id);
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
     } catch (error) {
-      console.error('Download failed:', error);
+      console.error("Download failed:", error);
       throw error;
     } finally {
       setIsDownloading(false);
@@ -292,5 +330,15 @@ export function useDocumentDownload() {
   return { downloadDocument, isDownloading };
 }
 
+// Quiz hooks
+export function useQuizQuestions(slideId: string | undefined) {
+  return useQuery({
+    queryKey: ["quiz", slideId],
+    queryFn: () => api.getQuizQuestions(slideId!),
+    enabled: !!slideId,
+    staleTime: 300000, // 5 minutes
+  });
+}
+
 // Export helper function for getting PDF URLs
-export const getDocumentPdfUrl = api.getDocumentPdfUrl; 
+export const getDocumentPdfUrl = api.getDocumentPdfUrl;

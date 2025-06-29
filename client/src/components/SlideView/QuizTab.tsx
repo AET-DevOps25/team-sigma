@@ -1,63 +1,29 @@
 import React, { useState } from "react";
-import { HelpCircle, CheckCircle, XCircle, RotateCcw } from "lucide-react";
+import {
+  HelpCircle,
+  CheckCircle,
+  XCircle,
+  RotateCcw,
+  Loader2,
+} from "lucide-react";
 import { Button } from "../ui/button";
-import type { Document } from "../../hooks/useApi";
+import type { Document, QuizQuestion } from "../../hooks/useApi";
+import { useQuizQuestions } from "../../hooks/useApi";
 
 interface QuizTabProps {
   document: Document;
 }
 
-const mockQuizQuestions = [
-  {
-    id: 1,
-    question: "What is the main topic of this document?",
-    options: [
-      "Software Development",
-      "Data Analysis",
-      "Project Management",
-      "Technical Documentation",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Based on the document content, this appears to be focused on technical documentation and development practices.",
-  },
-  {
-    id: 2,
-    question:
-      "Which of the following concepts is most relevant to this document?",
-    options: [
-      "Agile Methodology",
-      "Version Control",
-      "Database Design",
-      "API Development",
-    ],
-    correctAnswer: 3,
-    explanation:
-      "The document discusses API development patterns and best practices extensively.",
-  },
-  {
-    id: 3,
-    question: "What is the primary benefit mentioned in the document?",
-    options: [
-      "Cost Reduction",
-      "Improved Performance",
-      "Better Documentation",
-      "Enhanced Security",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "The document emphasizes performance improvements as a key benefit of the discussed approaches.",
-  },
-];
-
 const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
+  // Fetch quiz questions from the server
+  const { data: quizQuestions, isLoading, error } = useQuizQuestions("test");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
 
   const handleAnswerSelect = (answerIndex: number) => {
-    if (quizCompleted) return;
+    if (quizCompleted || !quizQuestions) return;
 
     const newAnswers = [...selectedAnswers];
     newAnswers[currentQuestion] = answerIndex;
@@ -65,7 +31,9 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
   };
 
   const handleNext = () => {
-    if (currentQuestion < mockQuizQuestions.length - 1) {
+    if (!quizQuestions) return;
+
+    if (currentQuestion < quizQuestions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       setQuizCompleted(true);
@@ -87,16 +55,60 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
   };
 
   const calculateScore = () => {
+    if (!quizQuestions) return 0;
+
     let correct = 0;
     selectedAnswers.forEach((answer, index) => {
-      if (answer === mockQuizQuestions[index].correctAnswer) {
+      if (answer === quizQuestions[index].correctAnswer) {
         correct++;
       }
     });
     return correct;
   };
 
-  const currentQ = mockQuizQuestions[currentQuestion];
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <span className="ml-2">Loading quiz questions...</span>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <XCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+          <h3 className="mb-2 text-lg font-semibold">Failed to load quiz</h3>
+          <p className="mb-4 text-gray-600">
+            There was an error loading the quiz questions. Please try again
+            later.
+          </p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // No questions available
+  if (!quizQuestions || quizQuestions.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <HelpCircle className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+          <h3 className="mb-2 text-lg font-semibold">No quiz available</h3>
+          <p className="text-gray-600">
+            No quiz questions are available for this document yet.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentQ = quizQuestions[currentQuestion];
   const score = calculateScore();
   const isAnswerSelected = selectedAnswers[currentQuestion] !== undefined;
 
@@ -118,16 +130,16 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
 
           <div className="mb-6 rounded-lg bg-gray-50 p-4">
             <div className="mb-1 text-3xl font-bold text-blue-600">
-              {score}/{mockQuizQuestions.length}
+              {score}/{quizQuestions.length}
             </div>
             <div className="text-gray-600">
-              {Math.round((score / mockQuizQuestions.length) * 100)}% Correct
+              {Math.round((score / quizQuestions.length) * 100)}% Correct
             </div>
           </div>
         </div>
 
         <div className="mb-6 space-y-4">
-          {mockQuizQuestions.map((question, index) => {
+          {quizQuestions.map((question: QuizQuestion, index: number) => {
             const userAnswer = selectedAnswers[index];
             const isCorrect = userAnswer === question.correctAnswer;
 
@@ -189,7 +201,7 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
             Quiz
           </h3>
           <div className="text-sm text-gray-500">
-            Question {currentQuestion + 1} of {mockQuizQuestions.length}
+            Question {currentQuestion + 1} of {quizQuestions.length}
           </div>
         </div>
 
@@ -197,7 +209,7 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
           <div
             className="h-2 rounded-full bg-blue-600 transition-all duration-300"
             style={{
-              width: `${((currentQuestion + 1) / mockQuizQuestions.length) * 100}%`,
+              width: `${((currentQuestion + 1) / quizQuestions.length) * 100}%`,
             }}
           ></div>
         </div>
@@ -248,7 +260,7 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
         </Button>
 
         <Button onClick={handleNext} disabled={!isAnswerSelected}>
-          {currentQuestion === mockQuizQuestions.length - 1
+          {currentQuestion === quizQuestions.length - 1
             ? "Finish Quiz"
             : "Next"}
         </Button>

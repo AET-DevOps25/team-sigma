@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:quiz-service}
+
+server:
+  port: ${SERVER_PORT:8083}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}

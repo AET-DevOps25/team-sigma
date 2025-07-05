@@ -17,6 +17,7 @@ SERVER_SERVICES := \
 	server/api-gateway \
 	server/document-service \
 	server/eureka \
+	server/lecture-service \
 	server/quiz-service \
 	server/chat-service
 
@@ -56,3 +57,6 @@ test-document-service:
 
 test-eureka:
 	@$(MAKE) -C server/eureka test
+
+test-lecture-service:
+	@$(MAKE) -C server/lecture-service test

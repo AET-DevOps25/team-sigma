@@ -345,14 +345,41 @@ public class DocumentService {
 
             List<SimilarChunkResponse> resultChunks = new ArrayList<>();
             for (Map<String, Object> chunk : chunkList) {
-                try {
-                    Long docId = Long.valueOf(chunk.get("documentId").toString());
-                    Integer chunkIdx = chunk.get("chunkIndex") != null ? Integer.valueOf(chunk.get("chunkIndex").toString()) : null;
-                    String text = chunk.get("text") != null ? chunk.get("text").toString() : "";
-                    resultChunks.add(new SimilarChunkResponse(docId, chunkIdx, text));
-                } catch (Exception ex) {
-                    // skip malformed result
+                Object docIdObj = chunk.get("documentId");
+                Object idxObj = chunk.get("chunkIndex");
+                Object textObj = chunk.get("text");
+
+                if (docIdObj == null) {
+                    logger.debug("Skipping chunk without documentId: {}", chunk);
+                    continue;
                 }
+
+                Long docId;
+                try {
+                    if (docIdObj instanceof Number num) {
+                        docId = num.longValue();
+                    } else {
+                        docId = Long.parseLong(docIdObj.toString());
+                    }
+                } catch (NumberFormatException nfe) {
+                    logger.debug("Unable to parse documentId '{}': {}", docIdObj, nfe.getMessage());
+                    continue;
+                }
+
+                Integer chunkIdx = null;
+                if (idxObj != null) {
+                    if (idxObj instanceof Number num) {
+                        chunkIdx = num.intValue();
+                    } else {
+                        try {
+                            chunkIdx = Integer.parseInt(idxObj.toString());
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+
+                String text = textObj != null ? textObj.toString() : "";
+
+                resultChunks.add(new SimilarChunkResponse(docId, chunkIdx, text));
             }
 
             return resultChunks;

@@ -127,6 +127,17 @@ async def chat(request: ChatRequest):
     try:
         logger.info(f"Processing chat request: '{request.message}'")
         
+        if request.document_id:
+            try:
+                await document_client.add_message_to_conversation(
+                    request.document_id, 
+                    "HUMAN", 
+                    request.message
+                )
+                logger.info(f"Successfully saved user message to document {request.document_id}")
+            except Exception as e:
+                logger.error(f"Failed to save user message to document {request.document_id}: {str(e)}")
+        
         chunks = await document_client.search_similar_chunks(request.message, limit=5)
         
         # if request.document_id:
@@ -155,21 +166,38 @@ async def chat(request: ChatRequest):
         
         ai_response = await chat_service.generate_rag_response(request.message, chunks)
         
+        if request.document_id:
+            try:
+                await document_client.add_message_to_conversation(
+                    request.document_id, 
+                    "AI", 
+                    ai_response
+                )
+                logger.info(f"Successfully saved AI response to document {request.document_id}")
+            except Exception as e:
+                logger.error(f"Failed to save AI response to document {request.document_id}: {str(e)}")
+        
         sources = []
         for chunk in chunks:
             source = f"{chunk.document_name} (chunk {chunk.chunk_index})"
             if source not in sources:
                 sources.append(source)
         
-        document_info = None
+        updated_document = None
         if request.document_id:
-            document_info = await document_client.get_document_by_id(request.document_id)
+            updated_document = await document_client.get_document_by_id(request.document_id)
+            logger.info(f"Retrieved updated document: {type(updated_document)}")
+            logger.info(f"Document attributes: {dir(updated_document) if updated_document else None}")
+            if updated_document and hasattr(updated_document, 'conversation'):
+                logger.info(f"Document has conversation with {len(updated_document.conversation)} messages")
+            else:
+                logger.info("Document does not have conversation attribute")
         
         logger.info(f"Generated response using {len(chunks)} chunks from {len(sources)} sources")
         
         return ChatResponse(
             response=ai_response,
-            document_info=document_info,
+            document=updated_document,
             sources=sources,
             chunk_count=len(chunks)
         )

@@ -2,6 +2,7 @@ package de.tum.team_sigma.document_service.dto;
 
 import de.tum.team_sigma.document_service.model.Document;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class DocumentResponse {
     
@@ -15,6 +16,7 @@ public class DocumentResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private int chunkCount;
+    private List<Document.ConversationMessage> conversation;
     
     public DocumentResponse() {}
     
@@ -29,6 +31,7 @@ public class DocumentResponse {
         this.createdAt = document.getCreatedAt();
         this.updatedAt = document.getUpdatedAt();
         this.chunkCount = document.getChunks() != null ? document.getChunks().size() : 0;
+        this.conversation = document.getConversation();
     }
     
     // Getters and Setters
@@ -110,5 +113,13 @@ public class DocumentResponse {
     
     public void setChunkCount(int chunkCount) {
         this.chunkCount = chunkCount;
+    }
+    
+    public List<Document.ConversationMessage> getConversation() {
+        return conversation;
+    }
+    
+    public void setConversation(List<Document.ConversationMessage> conversation) {
+        this.conversation = conversation;
     }
 } 

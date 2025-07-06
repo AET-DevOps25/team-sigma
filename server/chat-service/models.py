@@ -3,6 +3,12 @@ from datetime import datetime
 from typing import Optional, List
 
 
+class ConversationMessage(BaseModel):
+    messageIndex: int
+    messageType: str
+    content: str
+    createdAt: str
+
 class DocumentModel(BaseModel):
     id: int
     name: str
@@ -14,6 +20,7 @@ class DocumentModel(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     chunk_count: int
+    conversation: Optional[List[ConversationMessage]] = []
 
 
 class DocumentChunkModel(BaseModel):
@@ -31,6 +38,6 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    document_info: Optional[DocumentModel] = None
+    document: Optional[DocumentModel] = None  # Full updated document with conversation
     sources: List[str] = []
     chunk_count: int = 0 

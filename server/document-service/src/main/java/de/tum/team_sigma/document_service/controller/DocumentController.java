@@ -24,6 +24,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -306,6 +308,38 @@ public class DocumentController {
             
         } catch (Exception e) {
             logger.error("Failed to delete documents for lecture: {}", lectureId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    @PostMapping("/{id}/conversation")
+    @Operation(summary = "Add message to conversation", description = "Add a message to the document's conversation")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Message added successfully"),
+            @ApiResponse(responseCode = "404", description = "Document not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Map<String, Object>> addMessageToConversation(
+            @Parameter(description = "Document ID", required = true)
+            @PathVariable Long id,
+            @Parameter(description = "Message content", required = true)
+            @RequestBody Map<String, Object> messageRequest) {
+        
+        try {
+            String messageType = (String) messageRequest.get("messageType");
+            String content = (String) messageRequest.get("content");
+            
+            if (messageType == null || content == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            Map<String, Object> conversation = documentService.addMessageToConversation(id, messageType, content);
+            return ResponseEntity.ok(conversation);
+        } catch (RuntimeException e) {
+            logger.error("Document not found with id: {}", id);
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to add message to conversation for document with id: {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

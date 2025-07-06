@@ -1,69 +1,47 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { MessageSquare, Send, User, Bot } from "lucide-react";
 import { Button } from "../ui/button";
-import type { Document } from "../../hooks/useApi";
-import { useChatMessage } from "../../hooks/useApi";
+import type { Document, ConversationMessage } from "../../hooks/useApi";
+import { useChatMessage, useDocument } from "../../hooks/useApi";
+import { useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "../ui/textarea";
-
-interface ConversationMessage {
-  messageIndex: number;
-  messageType: 'ai' | 'human';
-  content: string;
-  createdAt: Date;
-}
 
 interface ChatTabProps {
   document: Document;
 }
 
 const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
-  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  
+  const queryClient = useQueryClient();
   const chatMutation = useChatMessage();
-
-  useEffect(() => {
-    setConversation([]);
-  }, [document]);
+  
+  const { data: updatedDocument, isLoading } = useDocument(document.id);
+  const conversation = updatedDocument?.conversation || document.conversation || [];
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isWaitingForResponse) return;
 
-    const userMessage: ConversationMessage = {
-      messageIndex: conversation.length,
-      messageType: 'human',
-      content: inputValue.trim(),
-      createdAt: new Date(),
-    };
-
-    setConversation(prev => [...prev, userMessage]);
+    const userMessageContent = inputValue.trim();
     setInputValue("");
     setIsWaitingForResponse(true);
 
     try {
-      const data = await chatMutation.mutateAsync({
-        message: userMessage.content,
+      const chatResponse = await chatMutation.mutateAsync({
+        message: userMessageContent,
         document_id: document.id.toString()
       });
 
-      const aiResponse: ConversationMessage = {
-        messageIndex: conversation.length + 1,
-        messageType: 'ai',
-        content: data.response,
-        createdAt: new Date(),
-      };
 
-      setConversation(prev => [...prev, aiResponse]);
+      console.log("chatResponse", chatResponse);
+
+      if (chatResponse.document) {
+        queryClient.setQueryData(['documents', document.id], chatResponse.document);
+      }
+
     } catch (error) {
-      console.error('Chat service error:', error);
-      const aiResponse: ConversationMessage = {
-        messageIndex: conversation.length + 1,
-        messageType: 'ai',
-        content: `Sorry, I'm having trouble connecting to the chat service. This is a fallback response for your question: "${userMessage.content}"`,
-        createdAt: new Date(),
-      };
-
-      setConversation(prev => [...prev, aiResponse]);
+      console.error('Chat service error:', error);      
     } finally {
       setIsWaitingForResponse(false);
     }
@@ -78,7 +56,6 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center">
           <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
@@ -86,9 +63,15 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
         </div>
       </div>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {conversation.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p>Loading conversation...</p>
+            </div>
+          </div>
+        ) : conversation.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500">
             <div className="text-center">
               <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -97,21 +80,21 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
             </div>
           </div>
         ) : (
-          conversation.map((message, index) => (
+          conversation.map((message: ConversationMessage, index: number) => (
             <div
               key={index}
-              className={`flex ${message.messageType === 'human' ? "justify-end" : "justify-start"}`}
+              className={`flex ${message.messageType === 'HUMAN' ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`max-w-[80%] rounded-lg p-3 ${
-                  message.messageType === 'human'
+                  message.messageType === 'HUMAN'
                     ? "bg-blue-500 text-white"
                     : "bg-gray-100 text-gray-800"
                 }`}
               >
                 <div className="flex items-start space-x-2">
                   <div className="flex-shrink-0">
-                    {message.messageType === 'human' ? (
+                    {message.messageType === 'HUMAN' ? (
                       <User className="h-4 w-4 mt-0.5" />
                     ) : (
                       <Bot className="h-4 w-4 mt-0.5" />
@@ -121,10 +104,10 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
                     <p className="text-sm">{message.content}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        message.messageType === 'human' ? "text-blue-100" : "text-gray-500"
+                        message.messageType === 'HUMAN' ? "text-blue-100" : "text-gray-500"
                       }`}
                     >
-                      {message.createdAt.toLocaleTimeString()}
+                      {new Date(message.createdAt).toLocaleTimeString()}
                     </p>
                   </div>
                 </div>

@@ -36,6 +36,7 @@ export interface Document {
   createdAt: string;
   updatedAt?: string;
   chunkCount: number;
+  conversation?: ConversationMessage[];
 }
 
 export interface DocumentUploadRequest {
@@ -51,6 +52,14 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   response: string;
+  document?: Document;
+}
+
+export interface ConversationMessage {
+  messageIndex: number;
+  messageType: 'AI' | 'HUMAN';
+  content: string;
+  createdAt: string;
 }
 
 export interface QuizQuestion {
@@ -194,16 +203,6 @@ const api = {
     });
     if (!response.ok) throw new Error('Failed to send chat message');
     return response.json();
-  },
-
-  // Hello service endpoints
-  getHello: async (name?: string): Promise<string> => {
-    const url = name
-      ? `${API_BASE}/api/hello/${name}`
-      : `${API_BASE}/api/hello/`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch hello");
-    return response.text();
   },
 
   // Quiz service endpoints
@@ -373,15 +372,6 @@ export function useDeleteDocument() {
 export function useChatMessage() {
   return useMutation({
     mutationFn: (request: ChatRequest) => api.sendChatMessage(request),
-  });
-}
-
-// Hello service hooks
-export function useHello(name?: string) {
-  return useQuery({
-    queryKey: ["hello", name],
-    queryFn: () => api.getHello(name),
-    staleTime: 60000, // 1 minute
   });
 }
 

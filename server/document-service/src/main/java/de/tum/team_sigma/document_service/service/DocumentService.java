@@ -348,7 +348,7 @@ public class DocumentService {
                 Object docIdObj = chunk.get("documentId");
                 if (docIdObj != null) {
                     try {
-=                        Long docId = Math.round(Double.valueOf(docIdObj.toString()));
+                        Long docId = Math.round(Double.valueOf(docIdObj.toString()));
                         documentIds.add(docId);
                     } catch (NumberFormatException ignored) {
                         // Skip malformed id values
@@ -465,6 +465,26 @@ public class DocumentService {
             logger.error("Failed to perform vector similarity search for chunks: {}", query, e);
             throw new RuntimeException("Failed to search similar chunks", e);
         }
+    }
+    
+    public Map<String, Object> addMessageToConversation(Long id, String messageType, String content) {
+        Document document = documentRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
+        
+        Document.ConversationMessage.MessageType type;
+        try {
+            type = Document.ConversationMessage.MessageType.valueOf(messageType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid message type: " + messageType);
+        }
+        
+        document.addMessage(type, content);
+        document = documentRepository.save(document);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("documentId", id);
+        response.put("conversation", document.getConversation());
+        return response;
     }
     
     public static class DocumentChunkResponse {

@@ -3,7 +3,7 @@
 
 run:
 	@echo "Starting Docker services..."
-	docker compose --env-file .env -f build/docker-compose.yml up --build
+	docker compose --project-name nemo --env-file .env -f build/docker-compose.yml up --build
 
 
 run-dev:

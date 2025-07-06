@@ -186,12 +186,6 @@ async def chat(request: ChatRequest):
         updated_document = None
         if request.document_id:
             updated_document = await document_client.get_document_by_id(request.document_id)
-            logger.info(f"Retrieved updated document: {type(updated_document)}")
-            logger.info(f"Document attributes: {dir(updated_document) if updated_document else None}")
-            if updated_document and hasattr(updated_document, 'conversation'):
-                logger.info(f"Document has conversation with {len(updated_document.conversation)} messages")
-            else:
-                logger.info("Document does not have conversation attribute")
         
         logger.info(f"Generated response using {len(chunks)} chunks from {len(sources)} sources")
         

@@ -27,12 +27,26 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
     setInputValue("");
     setIsWaitingForResponse(true);
 
+    const optimisticUserMessage: ConversationMessage = {
+      messageIndex: conversation.length,
+      messageType: 'HUMAN',
+      content: userMessageContent,
+      createdAt: new Date().toISOString()
+    };
+
+    queryClient.setQueryData(['documents', document.id], (oldData: Document | undefined) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        conversation: [...(oldData.conversation || []), optimisticUserMessage]
+      };
+    });
+
     try {
       const chatResponse = await chatMutation.mutateAsync({
         message: userMessageContent,
         document_id: document.id.toString()
       });
-
 
       console.log("chatResponse", chatResponse);
 
@@ -41,7 +55,14 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
       }
 
     } catch (error) {
-      console.error('Chat service error:', error);      
+      console.error('Chat service error:', error);
+      queryClient.setQueryData(['documents', document.id], (oldData: Document | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          conversation: oldData.conversation?.slice(0, -1) || []
+        };
+      });
     } finally {
       setIsWaitingForResponse(false);
     }

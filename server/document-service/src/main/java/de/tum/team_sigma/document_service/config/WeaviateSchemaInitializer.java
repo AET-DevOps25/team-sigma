@@ -42,9 +42,15 @@ public class WeaviateSchemaInitializer implements ApplicationRunner {
                     .run();
 
             if (!existing.hasErrors() && existing.getResult() != null) {
-                logger.info("Weaviate class '{}' already exists with vectorizer '{}'. Recreating it to use 'text2vec-openai'.", className, existing.getResult().getVectorizer());
-                // Delete the old class first so we can create it with the desired vectorizer
-                weaviateClient.schema().classDeleter().withClassName(className).run();
+                String existingVectorizer = existing.getResult().getVectorizer();
+                if ("text2vec-openai".equals(existingVectorizer)) {
+                    logger.info("Weaviate class '{}' already exists with correct vectorizer 'text2vec-openai'. Skipping recreation.", className);
+                    return; // Schema is already correct, don't recreate
+                } else {
+                    logger.info("Weaviate class '{}' exists with vectorizer '{}'. Recreating it to use 'text2vec-openai'.", className, existingVectorizer);
+                    // Delete the old class first so we can create it with the desired vectorizer
+                    weaviateClient.schema().classDeleter().withClassName(className).run();
+                }
             }
         } catch (Exception e) {
             // swallow – we'll create the class below

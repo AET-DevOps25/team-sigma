@@ -249,6 +249,27 @@ public class DocumentController {
         }
     }
     
+    @GetMapping("/search/chunks")
+    @Operation(summary = "Search similar document chunks", description = "Find similar document chunks with text content for RAG processing")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Similar chunks found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<List<DocumentService.DocumentChunkResponse>> searchSimilarChunks(
+            @Parameter(description = "Search query for similarity", required = true)
+            @RequestParam("q") String query,
+            @Parameter(description = "Maximum number of results")
+            @RequestParam(value = "limit", defaultValue = "5") int limit) {
+        
+        try {
+            List<DocumentService.DocumentChunkResponse> chunks = documentService.searchSimilarChunks(query, limit);
+            return ResponseEntity.ok(chunks);
+        } catch (Exception e) {
+            logger.error("Failed to search similar chunks with query: {}", query, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
     @GetMapping("/content-types")
     @Operation(summary = "Get documents by content type", description = "Filter documents by their content type")
     @ApiResponses(value = {

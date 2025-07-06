@@ -1,10 +1,15 @@
 .PHONY: run-dev test test-servers test-client test-all \
         test-api-gateway test-document-service test-eureka
 
+run:
+	@echo "Starting Docker services..."
+	docker compose --project-name nemo --env-file .env -f build/docker-compose.yml up --build
+
+
 run-dev:
 	@echo "Starting all services in parallel..."
 	@parallel --line-buffer --colsep '\t' --tagstring '[{1}]' '{2}' ::: \
-		'docker	docker compose -f docker-compose.dev.yaml up --build' \
+		'docker	docker compose -f build/docker-compose.dev.yaml up --build' \
 		'client	cd client && bun i && bun dev' \
 		'eureka	cd server/eureka && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
 		'api-gateway	cd server/api-gateway && watchexec -r -e java,yml,yaml ./gradlew bootRun' \

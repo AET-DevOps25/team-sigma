@@ -40,6 +40,14 @@ public class OpenApiController {
                 .map(body -> ResponseEntity.ok()
                         .header("Content-Type", "application/json")
                         .body(body))
-                .onErrorReturn(ResponseEntity.notFound().build());
+                .onErrorResume(err -> webClient.get()
+                        .uri(serviceUrl + "/openapi.json")
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .map(body -> ResponseEntity.ok()
+                                .header("Content-Type", "application/json")
+                                .body(body))
+                        .onErrorReturn(ResponseEntity.notFound().build())
+                );
     }
 } 

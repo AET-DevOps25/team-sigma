@@ -1,3 +1,6 @@
 .DS_Store
 *.local
 .env
+build/data/minio
+build/data/postgres
+build/data/weaviate

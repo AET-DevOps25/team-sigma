@@ -55,9 +55,15 @@ springdoc:
       - url: /api/document/v3/api-docs
         name: "Document Service"
         primaryName: "Document Service"
-      - url: /api/hello/v3/api-docs
-        name: "Hello Service"
-        primaryName: "Hello Service"
+      - url: /api/lecture/v3/api-docs
+        name: "Lecture Service"
+        primaryName: "Lecture Service"
+      - url: /api/quiz/v3/api-docs
+        name: "Quiz Service"
+        primaryName: "Quiz Service"
+      - url: /api/chat/v3/api-docs
+        name: "Chat Service"
+        primaryName: "Chat Service"
   api-docs:
     enabled: true
     path: /v3/api-docs

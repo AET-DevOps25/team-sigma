@@ -131,7 +131,7 @@ services:
 
   client:
     build:
-      context: ./client
+      context: ../client
     ports:
       - "3000:80"
     depends_on:

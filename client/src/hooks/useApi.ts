@@ -192,6 +192,13 @@ const api = {
     return `${API_BASE}/api/documents/${id}/download`;
   },
 
+  clearDocumentConversation: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE}/api/documents/${id}/conversation`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to clear conversation');
+  },
+
   // Chat service endpoints
   sendChatMessage: async (request: ChatRequest): Promise<ChatResponse> => {
     const response = await fetch(`${API_BASE}/api/chat`, {
@@ -364,6 +371,23 @@ export function useDeleteDocument() {
     mutationFn: (id: number) => api.deleteDocument(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+  });
+}
+
+export function useClearDocumentConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => api.clearDocumentConversation(id),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['documents', id], (oldData: Document | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          conversation: [],
+        };
+      });
     },
   });
 }

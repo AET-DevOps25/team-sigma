@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { MessageSquare, Send, User, Bot } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { MessageSquare, Send, User, Bot, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import type { Document, ConversationMessage } from "../../hooks/useApi";
-import { useChatMessage, useDocument } from "../../hooks/useApi";
+import { useChatMessage, useDocument, useClearDocumentConversation } from "../../hooks/useApi";
 import { useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "../ui/textarea";
 
@@ -13,12 +13,18 @@ interface ChatTabProps {
 const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
   const [inputValue, setInputValue] = useState("");
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const queryClient = useQueryClient();
   const chatMutation = useChatMessage();
+  const clearConversationMutation = useClearDocumentConversation();
   
   const { data: updatedDocument, isLoading } = useDocument(document.id);
   const conversation = updatedDocument?.conversation || document.conversation || [];
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation.length, isWaitingForResponse]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isWaitingForResponse) return;
@@ -75,12 +81,28 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
     }
   };
 
+  const handleClearConversation = () => {
+    clearConversationMutation.mutate(document.id);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center">
-          <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
-          <h3 className="font-semibold text-gray-800">Chat about {document.name}</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
+            <h3 className="font-semibold text-gray-800">Chat about {document.name}</h3>
+          </div>
+          <Button
+            onClick={handleClearConversation}
+            variant="outline"
+            size="sm"
+            disabled={clearConversationMutation.isPending || conversation.length === 0}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            New Chat
+          </Button>
         </div>
       </div>
 
@@ -151,6 +173,8 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
             </div>
           </div>
         )}
+        
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}

@@ -343,4 +343,27 @@ public class DocumentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+    
+    @DeleteMapping("/{id}/conversation")
+    @Operation(summary = "Clear document conversation", description = "Clear all messages from the document's conversation")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Conversation cleared successfully"),
+            @ApiResponse(responseCode = "404", description = "Document not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Map<String, Object>> clearDocumentConversation(
+            @Parameter(description = "Document ID", required = true)
+            @PathVariable Long id) {
+        
+        try {
+            Map<String, Object> response = documentService.clearDocumentConversation(id);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            logger.error("Document not found with id: {}", id);
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to clear conversation for document with id: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

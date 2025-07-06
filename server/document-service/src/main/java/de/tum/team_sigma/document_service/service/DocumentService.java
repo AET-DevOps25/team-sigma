@@ -487,6 +487,20 @@ public class DocumentService {
         return response;
     }
     
+    public Map<String, Object> clearDocumentConversation(Long id) {
+        Document document = documentRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
+        
+        document.getConversation().clear();
+        document = documentRepository.save(document);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("documentId", id);
+        response.put("conversation", document.getConversation());
+        response.put("message", "Conversation cleared successfully");
+        return response;
+    }
+    
     public static class DocumentChunkResponse {
         private String text;
         private Long documentId;

@@ -12,7 +12,7 @@ services:
       - CLUSTER_HOSTNAME=node1
       - TRANSFORMERS_INFERENCE_API=http://transformers:8080
     volumes:
-      - weaviate_data:/var/lib/weaviate
+      - ./data/weaviate:/var/lib/weaviate
 
   minio:
     image: minio/minio:RELEASE.2025-05-24T17-08-30Z
@@ -24,7 +24,7 @@ services:
       - MINIO_ROOT_PASSWORD=minioadmin
     command: server /data --console-address ":9001"
     volumes:
-      - minio_data:/data
+      - ./data/minio:/data
 
   postgres:
     image: postgres:15-alpine
@@ -35,17 +35,5 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=document_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  transformers:
-    image: semitechnologies/transformers-inference:cpu-2.4.0
-    environment:
-      - MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
-      - NUM_THREADS=4
-    networks:
-      - spring-cloud-network
-
-volumes:
-  weaviate_data:
-  minio_data:
-  postgres_data:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./config/postgres/initdb.d:/docker-entrypoint-initdb.d:ro

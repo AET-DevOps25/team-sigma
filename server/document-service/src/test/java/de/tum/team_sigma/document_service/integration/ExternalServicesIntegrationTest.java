@@ -10,6 +10,7 @@ import io.weaviate.client.v1.data.model.WeaviateObject;
 import io.weaviate.client.v1.schema.model.Property;
 import io.weaviate.client.v1.schema.model.WeaviateClass;
 import io.swagger.v3.oas.models.OpenAPI;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,6 +32,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@Disabled("External services (MinIO, Weaviate, OpenAI) are not available during regular CI builds.")
 @ActiveProfiles("test")
 class ExternalServicesIntegrationTest {
 

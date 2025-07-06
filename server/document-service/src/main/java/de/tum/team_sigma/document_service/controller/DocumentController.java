@@ -2,6 +2,7 @@ package de.tum.team_sigma.document_service.controller;
 
 import de.tum.team_sigma.document_service.dto.DocumentResponse;
 import de.tum.team_sigma.document_service.dto.DocumentUploadRequest;
+import de.tum.team_sigma.document_service.dto.SimilarChunkResponse;
 import de.tum.team_sigma.document_service.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -231,18 +232,18 @@ public class DocumentController {
     @Operation(summary = "Search similar documents", description = "Find similar documents using vector similarity search")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Similar documents found",
-                    content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+                    content = @Content(schema = @Schema(implementation = SimilarChunkResponse.class))),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<List<DocumentResponse>> searchSimilarDocuments(
+    public ResponseEntity<List<SimilarChunkResponse>> searchSimilarDocuments(
             @Parameter(description = "Search query for similarity", required = true)
             @RequestParam("q") String query,
             @Parameter(description = "Maximum number of results")
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
         
         try {
-            List<DocumentResponse> documents = documentService.searchSimilarDocuments(query, limit);
-            return ResponseEntity.ok(documents);
+            List<SimilarChunkResponse> chunks = documentService.searchSimilarDocuments(query, limit);
+            return ResponseEntity.ok(chunks);
         } catch (Exception e) {
             logger.error("Failed to search similar documents with query: {}", query, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

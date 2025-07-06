@@ -1,7 +1,7 @@
 services:
   eureka:
     build:
-      context: ./server/eureka
+      context: ../server/eureka
     ports:
       - "8761:8761"
     environment:
@@ -14,7 +14,7 @@ services:
 
   api-gateway:
     build:
-      context: ./server/api-gateway
+      context: ../server/api-gateway
     ports:
       - "8080:8080"
     environment:
@@ -29,7 +29,7 @@ services:
 
   document-service:
     build:
-      context: ./server/document-service
+      context: ../server/document-service
     environment:
       - SPRING_APPLICATION_NAME=document-service
       - SERVER_PORT=8080
@@ -43,6 +43,7 @@ services:
       - POSTGRES_DB=document_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - eureka
       - weaviate
@@ -53,7 +54,7 @@ services:
 
   chat-service:
     build:
-      context: ./server/chat-service
+      context: ../server/chat-service
     environment:
       - SPRING_APPLICATION_NAME=chat-service
       - SERVER_PORT=8082
@@ -67,7 +68,7 @@ services:
 
   lecture-service:
     build:
-      context: ./server/lecture-service
+      context: ../server/lecture-service
     environment:
       - SPRING_APPLICATION_NAME=lecture-service
       - SERVER_PORT=8083
@@ -96,7 +97,7 @@ services:
       - OPENAI_APIKEY=${OPENAI_API_KEY}
       - CLUSTER_HOSTNAME=node1
     volumes:
-      - weaviate_data:/var/lib/weaviate
+      - ./data/weaviate:/var/lib/weaviate
     networks:
       - spring-cloud-network
 
@@ -110,7 +111,7 @@ services:
       - MINIO_ROOT_PASSWORD=minioadmin
     command: server /data --console-address ":9001"
     volumes:
-      - minio_data:/data
+      - ./data/minio:/data
     networks:
       - spring-cloud-network
 
@@ -123,14 +124,14 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/create-multiple-databases.sh:/docker-entrypoint-initdb.d/create-multiple-databases.sh
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./config/postgres/initdb.d:/docker-entrypoint-initdb.d:ro
     networks:
       - spring-cloud-network
 
   client:
     build:
-      context: ./client
+      context: ../client
     ports:
       - "3000:80"
     depends_on:
@@ -144,8 +145,3 @@ networks:
 
   spring-cloud-network:
     driver: bridge
-
-volumes:
-  weaviate_data:
-  minio_data:
-  postgres_data:

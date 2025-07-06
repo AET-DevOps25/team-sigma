@@ -2,6 +2,7 @@ package de.tum.team_sigma.document_service.service;
 
 import de.tum.team_sigma.document_service.dto.DocumentResponse;
 import de.tum.team_sigma.document_service.dto.DocumentUploadRequest;
+import de.tum.team_sigma.document_service.dto.SimilarChunkResponse;
 import de.tum.team_sigma.document_service.model.Document;
 import de.tum.team_sigma.document_service.model.DocumentChunk;
 import de.tum.team_sigma.document_service.repository.DocumentChunkRepository;
@@ -284,7 +285,7 @@ public class DocumentService {
     }
     
     @Transactional(readOnly = true)
-    public List<DocumentResponse> searchSimilarDocuments(String query, int maxResults) {
+    public List<SimilarChunkResponse> searchSimilarDocuments(String query, int maxResults) {
         try {
             logger.info("Starting similarity search for query: '{}', maxResults: {}", query, maxResults);
             
@@ -293,18 +294,17 @@ public class DocumentService {
                     .concepts(new String[]{query})
                     .build();
 
-            // We only need the documentId back – that is enough to fetch full metadata from Postgres later.
-            io.weaviate.client.v1.graphql.query.fields.Field documentIdField =
-                    io.weaviate.client.v1.graphql.query.fields.Field.builder()
-                            .name("documentId")
-                            .build();
+            // Request documentId, chunkIndex and text back from Weaviate so we can return relevant chunk content
+            io.weaviate.client.v1.graphql.query.fields.Field documentIdField = io.weaviate.client.v1.graphql.query.fields.Field.builder().name("documentId").build();
+            io.weaviate.client.v1.graphql.query.fields.Field chunkIndexField = io.weaviate.client.v1.graphql.query.fields.Field.builder().name("chunkIndex").build();
+            io.weaviate.client.v1.graphql.query.fields.Field textField = io.weaviate.client.v1.graphql.query.fields.Field.builder().name("text").build();
 
             logger.info("Executing Weaviate GraphQL query for DocumentChunk class with limit: {}", maxResults);
             
             io.weaviate.client.base.Result<io.weaviate.client.v1.graphql.model.GraphQLResponse> result =
                     weaviateClient.graphQL().get()
                             .withClassName("DocumentChunk")
-                            .withFields(documentIdField)
+                            .withFields(documentIdField, chunkIndexField, textField)
                             .withNearText(nearText)
                             .withLimit(maxResults)
                             .run();
@@ -343,30 +343,46 @@ public class DocumentService {
             }
             logger.info("Found {} DocumentChunk results", chunkList.size());
 
-            Set<Long> documentIds = new LinkedHashSet<>();
+            List<SimilarChunkResponse> resultChunks = new ArrayList<>();
             for (Map<String, Object> chunk : chunkList) {
                 Object docIdObj = chunk.get("documentId");
-                if (docIdObj != null) {
-                    try {
-                        Long docId = Long.valueOf(docIdObj.toString());
-                        documentIds.add(docId);
-                    } catch (NumberFormatException ignored) {
-                        // Skip malformed id values
+                Object idxObj = chunk.get("chunkIndex");
+                Object textObj = chunk.get("text");
+
+                if (docIdObj == null) {
+                    logger.debug("Skipping chunk without documentId: {}", chunk);
+                    continue;
+                }
+
+                Long docId;
+                try {
+                    if (docIdObj instanceof Number num) {
+                        docId = num.longValue();
+                    } else {
+                        docId = Long.parseLong(docIdObj.toString());
+                    }
+                } catch (NumberFormatException nfe) {
+                    logger.debug("Unable to parse documentId '{}': {}", docIdObj, nfe.getMessage());
+                    continue;
+                }
+
+                Integer chunkIdx = null;
+                if (idxObj != null) {
+                    if (idxObj instanceof Number num) {
+                        chunkIdx = num.intValue();
+                    } else {
+                        try {
+                            chunkIdx = Integer.parseInt(idxObj.toString());
+                        } catch (NumberFormatException ignored) {}
                     }
                 }
+
+                String text = textObj != null ? textObj.toString() : "";
+
+                resultChunks.add(new SimilarChunkResponse(docId, chunkIdx, text));
             }
 
-            return documentIds.stream()
-                    .map(id -> {
-                        try {
-                            return getDocumentById(id);
-                        } catch (Exception e) {
-                            logger.warn("Document id {} referenced in Weaviate but not found in DB", id);
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            return resultChunks;
 
         } catch (Exception e) {
             logger.error("Failed to perform vector similarity search for query: {}", query, e);

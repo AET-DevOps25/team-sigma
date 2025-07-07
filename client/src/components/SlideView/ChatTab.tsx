@@ -5,6 +5,8 @@ import type { Document, ConversationMessage } from "../../hooks/useApi";
 import { useChatMessage, useDocument, useClearDocumentConversation } from "../../hooks/useApi";
 import { useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "../ui/textarea";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatTabProps {
   document: Document;
@@ -53,8 +55,6 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
         message: userMessageContent,
         document_id: document.id.toString()
       });
-
-      console.log("chatResponse", chatResponse);
 
       if (chatResponse.document) {
         queryClient.setQueryData(['documents', document.id], chatResponse.document);
@@ -144,7 +144,15 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm">{message.content}</p>
+                    {message.messageType === 'HUMAN' ? (
+                      <p className="text-sm">{message.content}</p>
+                    ) : (
+                      <div className="text-sm prose prose-sm max-w-none prose-gray">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                     <p
                       className={`text-xs mt-1 ${
                         message.messageType === 'HUMAN' ? "text-blue-100" : "text-gray-500"

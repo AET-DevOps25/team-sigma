@@ -45,10 +45,8 @@ class ChatService:
             return "I couldn't find any relevant information in the uploaded documents to answer your question. Please make sure your question is related to the content of the documents."
         
         context = ""
-        sources = []
         for i, chunk in enumerate(chunks):
-            context += f"Document: {chunk.document_name}\nContent: {chunk.text}\n\n"
-            sources.append(f"{chunk.document_name} (chunk {chunk.chunk_index})")
+            context += f"{chunk.text}\n\n"
 
         try:
             response = self.client.chat.completions.create(

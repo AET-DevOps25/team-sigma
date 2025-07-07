@@ -390,98 +390,6 @@ public class DocumentService {
         }
     }
     
-    // TODO: maybe refactor this later since it's duplicated code from searchSimilarDocuments
-    @Transactional(readOnly = true)
-    public List<DocumentChunkResponse> searchSimilarChunks(String query, int maxResults) {
-        try {
-            logger.info("Starting similarity search for chunks with query: '{}', maxResults: {}", query, maxResults);            
-            NearTextArgument nearText = NearTextArgument.builder()
-                    .concepts(new String[]{query})
-                    .build();
-
-            io.weaviate.client.v1.graphql.query.fields.Field textField =
-                    io.weaviate.client.v1.graphql.query.fields.Field.builder()
-                            .name("text")
-                            .build();
-            
-            io.weaviate.client.v1.graphql.query.fields.Field documentIdField =
-                    io.weaviate.client.v1.graphql.query.fields.Field.builder()
-                            .name("documentId")
-                            .build();
-            
-            io.weaviate.client.v1.graphql.query.fields.Field chunkIndexField =
-                    io.weaviate.client.v1.graphql.query.fields.Field.builder()
-                            .name("chunkIndex")
-                            .build();
-
-            logger.info("Executing Weaviate GraphQL query for chunks with text content");
-            
-            io.weaviate.client.base.Result<io.weaviate.client.v1.graphql.model.GraphQLResponse> result =
-                    weaviateClient.graphQL().get()
-                            .withClassName("DocumentChunk")
-                            .withFields(textField, documentIdField, chunkIndexField)
-                            .withNearText(nearText)
-                            .withLimit(maxResults)
-                            .run();
-
-            if (result.hasErrors()) {
-                logger.error("Weaviate query returned errors: {}", result.getError());
-                throw new RuntimeException("Weaviate similarity search failed: " + result.getError());
-            }
-
-            Object dataObj = result.getResult().getData();
-            if (dataObj == null) {
-                logger.warn("Weaviate query returned null data");
-                return Collections.emptyList();
-            }
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-            
-            @SuppressWarnings("unchecked")
-            Map<String, Object> getMap = (Map<String, Object>) dataMap.get("Get");
-            if (getMap == null) {
-                logger.warn("Get map is null in response");
-                return Collections.emptyList();
-            }
-            
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> chunkList = (List<Map<String, Object>>) getMap.get("DocumentChunk");
-            if (chunkList == null) {
-                logger.warn("DocumentChunk list is null in Get map");
-                return Collections.emptyList();
-            }
-            logger.info("Found {} DocumentChunk results with text content", chunkList.size());
-
-            List<DocumentChunkResponse> chunks = new ArrayList<>();
-            for (Map<String, Object> chunk : chunkList) {
-                try {
-                    String text = (String) chunk.get("text");
-                    Long documentId = Math.round(Double.valueOf(chunk.get("documentId").toString()));
-                    Integer chunkIndex = (int) Math.round(Double.valueOf(chunk.get("chunkIndex").toString()));                    
-                    Document document = documentRepository.findById(documentId).orElse(null);
-                    if (document != null && text != null) {
-                        chunks.add(new DocumentChunkResponse(
-                            text,
-                            document.getId(),
-                            document.getName(),
-                            document.getOriginalFilename(),
-                            chunkIndex
-                        ));
-                    }
-                } catch (Exception e) {
-                    logger.warn("Failed to process chunk from Weaviate response", e);
-                }
-            }
-
-            logger.info("Returning {} chunks for RAG processing", chunks.size());
-            return chunks;
-
-        } catch (Exception e) {
-            logger.error("Failed to perform vector similarity search for chunks: {}", query, e);
-            throw new RuntimeException("Failed to search similar chunks", e);
-        }
-    }
     
     public Map<String, Object> addMessageToConversation(Long id, String messageType, String content) {
         Document document = documentRepository.findById(id)
@@ -515,27 +423,5 @@ public class DocumentService {
         response.put("conversation", document.getConversation());
         response.put("message", "Conversation cleared successfully");
         return response;
-    }
-    
-    public static class DocumentChunkResponse {
-        private String text;
-        private Long documentId;
-        private String documentName;
-        private String originalFilename;
-        private Integer chunkIndex;
-        
-        public DocumentChunkResponse(String text, Long documentId, String documentName, String originalFilename, Integer chunkIndex) {
-            this.text = text;
-            this.documentId = documentId;
-            this.documentName = documentName;
-            this.originalFilename = originalFilename;
-            this.chunkIndex = chunkIndex;
-        }
-        
-        public String getText() { return text; }
-        public Long getDocumentId() { return documentId; }
-        public String getDocumentName() { return documentName; }
-        public String getOriginalFilename() { return originalFilename; }
-        public Integer getChunkIndex() { return chunkIndex; }
     }
 }

@@ -152,7 +152,6 @@ async def chat(request: ChatRequest):
         #         return ChatResponse(
         #             response="I couldn't find any relevant information in this specific document to answer your question. Please make sure your question is related to the content of this document.",
         #             document_info=document,
-        #             sources=[],
         #             chunk_count=0
         #         )
         
@@ -160,7 +159,6 @@ async def chat(request: ChatRequest):
             return ChatResponse(
                 response="I couldn't find any relevant information in the uploaded documents to answer your question. Please make sure your question is related to the content of the documents.",
                 document_info=None,
-                sources=[],
                 chunk_count=0
             )
         
@@ -177,22 +175,15 @@ async def chat(request: ChatRequest):
             except Exception as e:
                 logger.error(f"Failed to save AI response to document {request.document_id}: {str(e)}")
         
-        sources = []
-        for chunk in chunks:
-            source = f"{chunk.document_name} (chunk {chunk.chunk_index})"
-            if source not in sources:
-                sources.append(source)
-        
         updated_document = None
         if request.document_id:
             updated_document = await document_client.get_document_by_id(request.document_id)
         
-        logger.info(f"Generated response using {len(chunks)} chunks from {len(sources)} sources")
+        logger.info(f"Generated response using {len(chunks)} chunks")
         
         return ChatResponse(
             response=ai_response,
             document=updated_document,
-            sources=sources,
             chunk_count=len(chunks)
         )
         

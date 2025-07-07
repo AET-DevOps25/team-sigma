@@ -39,5 +39,4 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     document: Optional[DocumentModel] = None  # Full updated document with conversation
-    sources: List[str] = []
     chunk_count: int = 0 

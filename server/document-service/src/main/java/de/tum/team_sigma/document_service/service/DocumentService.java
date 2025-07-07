@@ -389,4 +389,39 @@ public class DocumentService {
             throw new RuntimeException("Failed to search similar documents", e);
         }
     }
+    
+    
+    public Map<String, Object> addMessageToConversation(Long id, String messageType, String content) {
+        Document document = documentRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
+        
+        Document.ConversationMessage.MessageType type;
+        try {
+            type = Document.ConversationMessage.MessageType.valueOf(messageType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid message type: " + messageType);
+        }
+        
+        document.addMessage(type, content);
+        document = documentRepository.save(document);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("documentId", id);
+        response.put("conversation", document.getConversation());
+        return response;
+    }
+    
+    public Map<String, Object> clearDocumentConversation(Long id) {
+        Document document = documentRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
+        
+        document.getConversation().clear();
+        document = documentRepository.save(document);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("documentId", id);
+        response.put("conversation", document.getConversation());
+        response.put("message", "Conversation cleared successfully");
+        return response;
+    }
 }

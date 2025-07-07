@@ -1,69 +1,77 @@
-import React, { useState, useEffect } from "react";
-import { MessageSquare, Send, User, Bot } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { MessageSquare, Send, User, Bot, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
-import type { Document } from "../../hooks/useApi";
-import { useChatMessage } from "../../hooks/useApi";
+import type { Document, ConversationMessage } from "../../hooks/useApi";
+import { useChatMessage, useDocument, useClearDocumentConversation, useChatHealth } from "../../hooks/useApi";
+import { useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "../ui/textarea";
-
-interface ConversationMessage {
-  messageIndex: number;
-  messageType: 'ai' | 'human';
-  content: string;
-  createdAt: Date;
-}
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatTabProps {
   document: Document;
 }
 
 const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
-  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const queryClient = useQueryClient();
   const chatMutation = useChatMessage();
+  const clearConversationMutation = useClearDocumentConversation();
+  const { data: chatHealth, isLoading: isHealthLoading, error: healthError } = useChatHealth();
+  
+  const { data: updatedDocument, isLoading } = useDocument(document.id);
+  const conversation = updatedDocument?.conversation || document.conversation || [];
+
+  const isChatServiceAvailable = chatHealth?.status === 'healthy' && !healthError;
 
   useEffect(() => {
-    setConversation([]);
-  }, [document]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation.length, isWaitingForResponse]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isWaitingForResponse) return;
+    if (!inputValue.trim() || isWaitingForResponse || !isChatServiceAvailable) return;
 
-    const userMessage: ConversationMessage = {
-      messageIndex: conversation.length,
-      messageType: 'human',
-      content: inputValue.trim(),
-      createdAt: new Date(),
-    };
-
-    setConversation(prev => [...prev, userMessage]);
+    const userMessageContent = inputValue.trim();
     setInputValue("");
     setIsWaitingForResponse(true);
 
+    const optimisticUserMessage: ConversationMessage = {
+      messageIndex: conversation.length,
+      messageType: 'HUMAN',
+      content: userMessageContent,
+      createdAt: new Date().toISOString()
+    };
+
+    queryClient.setQueryData(['documents', document.id], (oldData: Document | undefined) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        conversation: [...(oldData.conversation || []), optimisticUserMessage]
+      };
+    });
+
     try {
-      const data = await chatMutation.mutateAsync({
-        message: userMessage.content,
+      const chatResponse = await chatMutation.mutateAsync({
+        message: userMessageContent,
         document_id: document.id.toString()
       });
 
-      const aiResponse: ConversationMessage = {
-        messageIndex: conversation.length + 1,
-        messageType: 'ai',
-        content: data.response,
-        createdAt: new Date(),
-      };
+      if (chatResponse.document) {
+        queryClient.setQueryData(['documents', document.id], chatResponse.document);
+      }
 
-      setConversation(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Chat service error:', error);
-      const aiResponse: ConversationMessage = {
-        messageIndex: conversation.length + 1,
-        messageType: 'ai',
-        content: `Sorry, I'm having trouble connecting to the chat service. This is a fallback response for your question: "${userMessage.content}"`,
-        createdAt: new Date(),
-      };
-
-      setConversation(prev => [...prev, aiResponse]);
+      queryClient.setQueryData(['documents', document.id], (oldData: Document | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          conversation: oldData.conversation?.slice(0, -1) || []
+        };
+      });
     } finally {
       setIsWaitingForResponse(false);
     }
@@ -76,19 +84,60 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
     }
   };
 
+  const handleClearConversation = () => {
+    clearConversationMutation.mutate(document.id);
+  };
+
+  if (isHealthLoading || !isChatServiceAvailable) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center">
+            <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
+            <h3 className="font-semibold text-gray-800">Chat about {document.name}</h3>
+          </div>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-gray-500">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading chat...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Chat header */}
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center">
-          <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
-          <h3 className="font-semibold text-gray-800">Chat about {document.name}</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
+            <h3 className="font-semibold text-gray-800">Chat about {document.name}</h3>
+          </div>
+          <Button
+            onClick={handleClearConversation}
+            variant="outline"
+            size="sm"
+            disabled={clearConversationMutation.isPending || conversation.length === 0}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            New Chat
+          </Button>
         </div>
       </div>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {conversation.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p>Loading conversation...</p>
+            </div>
+          </div>
+        ) : conversation.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500">
             <div className="text-center">
               <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -97,34 +146,42 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
             </div>
           </div>
         ) : (
-          conversation.map((message, index) => (
+          conversation.map((message: ConversationMessage, index: number) => (
             <div
               key={index}
-              className={`flex ${message.messageType === 'human' ? "justify-end" : "justify-start"}`}
+              className={`flex ${message.messageType === 'HUMAN' ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`max-w-[80%] rounded-lg p-3 ${
-                  message.messageType === 'human'
+                  message.messageType === 'HUMAN'
                     ? "bg-blue-500 text-white"
                     : "bg-gray-100 text-gray-800"
                 }`}
               >
                 <div className="flex items-start space-x-2">
                   <div className="flex-shrink-0">
-                    {message.messageType === 'human' ? (
+                    {message.messageType === 'HUMAN' ? (
                       <User className="h-4 w-4 mt-0.5" />
                     ) : (
                       <Bot className="h-4 w-4 mt-0.5" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm">{message.content}</p>
+                    {message.messageType === 'HUMAN' ? (
+                      <p className="text-sm">{message.content}</p>
+                    ) : (
+                      <div className="text-sm prose prose-sm max-w-none prose-gray">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                     <p
                       className={`text-xs mt-1 ${
-                        message.messageType === 'human' ? "text-blue-100" : "text-gray-500"
+                        message.messageType === 'HUMAN' ? "text-blue-100" : "text-gray-500"
                       }`}
                     >
-                      {message.createdAt.toLocaleTimeString()}
+                      {new Date(message.createdAt).toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
@@ -147,6 +204,8 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
             </div>
           </div>
         )}
+        
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}

@@ -6,10 +6,13 @@ import uvicorn
 import os
 import logging
 import json
-import asyncio
-from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel
+import openai
+from dotenv import load_dotenv
+from models import DocumentModel, DocumentChunkModel, ChatRequest, ChatResponse
+from chat_service import ChatService
+from document_service_client import DocumentServiceClient
+
+load_dotenv(dotenv_path="../../.env")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,75 +21,12 @@ EUREKA_SERVER = os.getenv("EUREKA_CLIENT_SERVICEURL_DEFAULTZONE", "http://localh
 SERVICE_NAME = os.getenv("SPRING_APPLICATION_NAME", "chat-service")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8082"))
 
-class DocumentModel(BaseModel):
-    id: int
-    name: str
-    original_filename: str
-    content_type: str
-    file_size: int
-    description: Optional[str] = None
-    organization_id: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    chunk_count: int
-
-class ChatRequest(BaseModel):
-    message: str
-    document_id: str
-
-class ChatResponse(BaseModel):
-    response: str
-    document_info: Optional[DocumentModel] = None
-
-class DocumentServiceClient:
-    
-    def __init__(self):
-        self.service_name = "document-service"
-    
-    async def get_document_by_id(self, document_id: str) -> Optional[DocumentModel]:
-        try:
-            logger.info(f"Fetching document with ID: {document_id}")
-            
-            endpoint = f"/api/documents/{document_id}"
-            loop = asyncio.get_event_loop()
-            
-            response = await loop.run_in_executor(
-                None,
-                lambda: eureka_client.do_service(
-                    self.service_name,
-                    endpoint,
-                    return_type="json"
-                )
-            )
-            
-            if response:
-                # Convert Java field names to Python field names
-                python_document_data = {
-                    "id": response["id"],
-                    "name": response["name"],
-                    "original_filename": response["originalFilename"],
-                    "content_type": response["contentType"],
-                    "file_size": response["fileSize"],
-                    "description": response.get("description"),
-                    "organization_id": response.get("organizationId"),
-                    "created_at": response["createdAt"],
-                    "updated_at": response.get("updatedAt"),
-                    "chunk_count": response["chunkCount"]
-                }
-                
-                logger.info(f"Successfully fetched document: {python_document_data['name']}")
-                return DocumentModel(**python_document_data)
-            else:
-                logger.warning(f"Document not found with ID: {document_id}")
-                return None
-                
-        except Exception as e:
-            logger.error(f"Error fetching document {document_id}: {str(e)}")
-            if "404" in str(e) or "Not Found" in str(e):
-                return None
-            return None
+openai.api_key = os.getenv("OPENAI_APIKEY")
+if not openai.api_key:
+    logger.warning("OPENAI_APIKEY not set. RAG functionality will be limited.")
 
 document_client = DocumentServiceClient()
+chat_service = ChatService()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -112,7 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Chat Service",
-    description="AI-powered chat service for document Q&A",
+    description="AI-powered chat service for document Q&A using RAG. Supports both general document search and document-specific queries.",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -125,7 +65,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
+@app.get("/api/chat/health")
 async def health_check():
     return {"status": "healthy", "service": SERVICE_NAME}
 
@@ -173,36 +113,86 @@ async def get_eureka_services():
         return {"error": str(e)}
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):    
-    # Fetch document information from document service via Eureka
-    document = await document_client.get_document_by_id(request.document_id)
+async def chat(request: ChatRequest):
+    """
+    Chat endpoint with RAG (Retrieval-Augmented Generation)
     
-    if document is None:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Document with ID {request.document_id} not found"
+    Supports two modes:
+    1. General chat: searches across all documents (no document_id provided)
+    2. Document-specific chat: provide document_id to chat about a specific document
+    
+    Uses vector similarity search to find relevant text chunks and generates
+    AI responses based strictly on the retrieved document content.
+    """
+    try:
+        logger.info(f"Processing chat request: '{request.message}'")
+        
+        if request.document_id:
+            try:
+                await document_client.add_message_to_conversation(
+                    request.document_id, 
+                    "HUMAN", 
+                    request.message
+                )
+                logger.info(f"Successfully saved user message to document {request.document_id}")
+            except Exception as e:
+                logger.error(f"Failed to save user message to document {request.document_id}: {str(e)}")
+        
+        chunks = await document_client.search_similar_chunks(request.message, limit=5)
+        
+        # if request.document_id:
+        #     document = await document_client.get_document_by_id(request.document_id)
+        #     if not document:
+        #         raise HTTPException(status_code=404, detail=f"Document with ID {request.document_id} not found")
+             
+        #     # Filter to only include chunks from the specific document
+        #     chunks = [chunk for chunk in chunks if chunk.document_id == document.id]
+             
+        #     if not chunks:
+        #         return ChatResponse(
+        #             response="I couldn't find any relevant information in this specific document to answer your question. Please make sure your question is related to the content of this document.",
+        #             document_info=document,
+        #             chunk_count=0
+        #         )
+        
+        if not chunks:
+            return ChatResponse(
+                response="I couldn't find any relevant information in the uploaded documents to answer your question. Please make sure your question is related to the content of the documents.",
+                document_info=None,
+                chunk_count=0
+            )
+        
+        ai_response = await chat_service.generate_rag_response(request.message, chunks)
+        
+        if request.document_id:
+            try:
+                await document_client.add_message_to_conversation(
+                    request.document_id, 
+                    "AI", 
+                    ai_response
+                )
+                logger.info(f"Successfully saved AI response to document {request.document_id}")
+            except Exception as e:
+                logger.error(f"Failed to save AI response to document {request.document_id}: {str(e)}")
+        
+        updated_document = None
+        if request.document_id:
+            updated_document = await document_client.get_document_by_id(request.document_id)
+        
+        logger.info(f"Generated response using {len(chunks)} chunks")
+        
+        return ChatResponse(
+            response=ai_response,
+            document=updated_document,
+            chunk_count=len(chunks)
         )
-    
-    response_text = (
-        f"AI Response: I understand you're asking '{request.message}' about the document "
-        f"'{document.name}' (ID: {document.id}). This document was uploaded on "
-        f"{document.created_at.strftime('%Y-%m-%d %H:%M:%S')} and contains {document.chunk_count} "
-        f"chunks of processed content. The original file '{document.original_filename}' "
-        f"is {document.file_size / 1024:.1f} KB in size."
-    )
-    
-    if document.description:
-        response_text += f" Document description: {document.description}"
-    
-    # TODO: Implement actual AI processing using document chunks for RAG
-    response_text += " [This is currently a demonstration response - full AI integration pending]"
-    
-    logger.info(f"Processed chat request for document {document.name}")
-    
-    return ChatResponse(
-        response=response_text,
-        document_info=document
-    )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing chat request: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error while processing chat request")
+
 
 @app.get("/api/documents/{document_id}")
 async def get_document_info(document_id: str):

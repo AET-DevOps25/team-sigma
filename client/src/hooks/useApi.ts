@@ -36,6 +36,7 @@ export interface Document {
   createdAt: string;
   updatedAt?: string;
   chunkCount: number;
+  conversation?: ConversationMessage[];
 }
 
 export interface DocumentUploadRequest {
@@ -51,6 +52,14 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   response: string;
+  document?: Document;
+}
+
+export interface ConversationMessage {
+  messageIndex: number;
+  messageType: 'AI' | 'HUMAN';
+  content: string;
+  createdAt: string;
 }
 
 export interface QuizQuestion {
@@ -183,6 +192,13 @@ const api = {
     return `${API_BASE}/api/documents/${id}/download`;
   },
 
+  clearDocumentConversation: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE}/api/documents/${id}/conversation`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to clear conversation');
+  },
+
   // Chat service endpoints
   sendChatMessage: async (request: ChatRequest): Promise<ChatResponse> => {
     const response = await fetch(`${API_BASE}/api/chat`, {
@@ -196,14 +212,10 @@ const api = {
     return response.json();
   },
 
-  // Hello service endpoints
-  getHello: async (name?: string): Promise<string> => {
-    const url = name
-      ? `${API_BASE}/api/hello/${name}`
-      : `${API_BASE}/api/hello/`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch hello");
-    return response.text();
+  getChatHealth: async (): Promise<{ status: string; service: string }> => {
+    const response = await fetch(`${API_BASE}/api/chat/health`);
+    if (!response.ok) throw new Error("Failed to fetch chat service health");
+    return response.json();
   },
 
   // Quiz service endpoints
@@ -369,6 +381,23 @@ export function useDeleteDocument() {
   });
 }
 
+export function useClearDocumentConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => api.clearDocumentConversation(id),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['documents', id], (oldData: Document | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          conversation: [],
+        };
+      });
+    },
+  });
+}
+
 // Chat service hooks
 export function useChatMessage() {
   return useMutation({
@@ -376,12 +405,13 @@ export function useChatMessage() {
   });
 }
 
-// Hello service hooks
-export function useHello(name?: string) {
+export function useChatHealth() {
   return useQuery({
-    queryKey: ["hello", name],
-    queryFn: () => api.getHello(name),
-    staleTime: 60000, // 1 minute
+    queryKey: ["chat", "health"],
+    queryFn: api.getChatHealth,
+    refetchInterval: 3000, // Check every 3 seconds
+    retry: 3,
+    staleTime: 0, // Always consider stale so it refetches
   });
 }
 

@@ -59,9 +59,9 @@ class DocumentServiceClient:
 
     async def search_similar_chunks(self, query: str, limit: int = 5) -> List[DocumentChunkModel]:
         try:
-            logger.info(f"Searching similar chunks for query: '{query}' with limit: {limit}")
+            logger.info(f"Searching similar documents for query: '{query}' with limit: {limit}")
             
-            endpoint = f"/api/documents/search/chunks?q={quote_plus(query)}&limit={limit}"
+            endpoint = f"/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
             loop = asyncio.get_event_loop()
             
             response = await loop.run_in_executor(
@@ -75,24 +75,34 @@ class DocumentServiceClient:
             
             if response:
                 chunks = []
+                document_cache = {}
+                
                 for chunk_data in response:
+                    document_id = chunk_data["documentId"]
+                    
+                    if document_id not in document_cache:
+                        document_info = await self.get_document_by_id(str(document_id))
+                        document_cache[document_id] = document_info
+                    
+                    document_info = document_cache[document_id]
+                    
                     chunk = DocumentChunkModel(
                         text=chunk_data["text"],
-                        document_id=chunk_data["documentId"],
-                        document_name=chunk_data["documentName"],
-                        original_filename=chunk_data["originalFilename"],
-                        chunk_index=chunk_data["chunkIndex"]
+                        document_id=document_id,
+                        document_name=document_info.name if document_info else f"Document {document_id}",
+                        original_filename=document_info.original_filename if document_info else "Unknown",
+                        chunk_index=chunk_data.get("chunkIndex", 0)
                     )
                     chunks.append(chunk)
                 
-                logger.info(f"Successfully retrieved {len(chunks)} chunks")
+                logger.info(f"Successfully retrieved {len(chunks)} chunks from similar documents search")
                 return chunks
             else:
                 logger.warning(f"No chunks found for query: {query}")
                 return []
                 
         except Exception as e:
-            logger.error(f"Error searching chunks for query '{query}': {str(e)}")
+            logger.error(f"Error searching similar documents for query '{query}': {str(e)}")
             return []
 
     async def add_message_to_conversation(self, document_id: str, message_type: str, content: str) -> bool:

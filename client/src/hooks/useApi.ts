@@ -212,6 +212,12 @@ const api = {
     return response.json();
   },
 
+  getChatHealth: async (): Promise<{ status: string; service: string }> => {
+    const response = await fetch(`${API_BASE}/api/chat/health`);
+    if (!response.ok) throw new Error("Failed to fetch chat service health");
+    return response.json();
+  },
+
   // Quiz service endpoints
   getQuizQuestions: async (slideId: string): Promise<QuizQuestion[]> => {
     const response = await fetch(`${API_BASE}/api/quiz/${slideId}`);
@@ -396,6 +402,16 @@ export function useClearDocumentConversation() {
 export function useChatMessage() {
   return useMutation({
     mutationFn: (request: ChatRequest) => api.sendChatMessage(request),
+  });
+}
+
+export function useChatHealth() {
+  return useQuery({
+    queryKey: ["chat", "health"],
+    queryFn: api.getChatHealth,
+    refetchInterval: 3000, // Check every 3 seconds
+    retry: 3,
+    staleTime: 0, // Always consider stale so it refetches
   });
 }
 

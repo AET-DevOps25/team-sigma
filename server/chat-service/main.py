@@ -65,7 +65,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
+@app.get("/api/chat/health")
 async def health_check():
     return {"status": "healthy", "service": SERVICE_NAME}
 

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageSquare, Send, User, Bot, RefreshCw } from "lucide-react";
+import { MessageSquare, Send, User, Bot, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import type { Document, ConversationMessage } from "../../hooks/useApi";
-import { useChatMessage, useDocument, useClearDocumentConversation } from "../../hooks/useApi";
+import { useChatMessage, useDocument, useClearDocumentConversation, useChatHealth } from "../../hooks/useApi";
 import { useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "../ui/textarea";
 import ReactMarkdown from 'react-markdown';
@@ -20,16 +20,19 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
   const queryClient = useQueryClient();
   const chatMutation = useChatMessage();
   const clearConversationMutation = useClearDocumentConversation();
+  const { data: chatHealth, isLoading: isHealthLoading, error: healthError } = useChatHealth();
   
   const { data: updatedDocument, isLoading } = useDocument(document.id);
   const conversation = updatedDocument?.conversation || document.conversation || [];
+
+  const isChatServiceAvailable = chatHealth?.status === 'healthy' && !healthError;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation.length, isWaitingForResponse]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isWaitingForResponse) return;
+    if (!inputValue.trim() || isWaitingForResponse || !isChatServiceAvailable) return;
 
     const userMessageContent = inputValue.trim();
     setInputValue("");
@@ -84,6 +87,26 @@ const ChatTab: React.FC<ChatTabProps> = ({ document }) => {
   const handleClearConversation = () => {
     clearConversationMutation.mutate(document.id);
   };
+
+  if (isHealthLoading || !isChatServiceAvailable) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center">
+            <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
+            <h3 className="font-semibold text-gray-800">Chat about {document.name}</h3>
+          </div>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-gray-500">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading chat...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

@@ -40,12 +40,4 @@ public class ApiGatewayApplication {
                 .filter(lb("quiz-service"))
                 .build();
     }
-
-    @Bean
-    public RouterFunction<ServerResponse> genaiServiceRouteConfig() {
-        return route("genai-service")
-                .route(path("/api/genai/**"), http())
-                .filter(lb("genai-service"))
-                .build();
-    }
 }

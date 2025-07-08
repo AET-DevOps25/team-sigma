@@ -21,9 +21,9 @@ EUREKA_SERVER = os.getenv("EUREKA_CLIENT_SERVICEURL_DEFAULTZONE", "http://localh
 SERVICE_NAME = os.getenv("SPRING_APPLICATION_NAME", "chat-service")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8082"))
 
-openai.api_key = os.getenv("OPENAI_APIKEY")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
-    logger.warning("OPENAI_APIKEY not set. RAG functionality will be limited.")
+    logger.warning("OPENAI_API_KEY not set. RAG functionality will be limited.")
 
 document_client = DocumentServiceClient()
 chat_service = ChatService()

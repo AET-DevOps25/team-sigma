@@ -60,7 +60,7 @@ services:
       - SERVER_PORT=8082
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
       - ENVIRONMENT=docker
-      - OPENAI_APIKEY=${OPENAI_APIKEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - eureka
       - document-service
@@ -95,7 +95,7 @@ services:
       - PERSISTENCE_DATA_PATH=/var/lib/weaviate
       - DEFAULT_VECTORIZER_MODULE=text2vec-openai
       - ENABLE_MODULES=text2vec-openai,generative-openai
-      - OPENAI_APIKEY=${OPENAI_APIKEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - CLUSTER_HOSTNAME=node1
     volumes:
       - ./data/weaviate:/var/lib/weaviate

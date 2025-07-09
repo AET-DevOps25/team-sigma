@@ -28,6 +28,31 @@ export class CdkStack extends cdk.Stack {
       ],
     });
 
+    // Add VPC endpoints so tasks can reach AWS services without NAT Gateway
+    vpc.addGatewayEndpoint('S3Endpoint', {
+      service: ec2.GatewayVpcEndpointAwsService.S3,
+    });
+
+    vpc.addInterfaceEndpoint('EcrDockerEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+    });
+
+    vpc.addInterfaceEndpoint('EcrEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR,
+    });
+
+    vpc.addInterfaceEndpoint('CloudWatchLogsEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+    });
+
+    vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+    });
+
+    vpc.addInterfaceEndpoint('SsmEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.SSM,
+    });
+
     // 2. ECS Cluster with Cloud Map service discovery so that the microservices can reach each other via DNS (e.g. http://eureka:8761)
     const cluster = new ecs.Cluster(this, "TeamSigmaCluster", {
       vpc,
@@ -41,11 +66,15 @@ export class CdkStack extends cdk.Stack {
       id: string,
       containerImage: ecs.ContainerImage,
       containerPort: number,
-      environment?: { [key: string]: string }
+      environment?: { [key: string]: string },
     ) => {
       const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
         memoryLimitMiB: 512, // lowest allowed for 0.25 vCPU
         cpu: 256, // 0.25 vCPU (cheapest)
+        runtimePlatform: {
+          cpuArchitecture: ecs.CpuArchitecture.X86_64,
+          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        },
       });
 
       taskDef.addContainer(`${id}Container`, {
@@ -74,7 +103,9 @@ export class CdkStack extends cdk.Stack {
     // 3. Eureka service (internal)
     createInternalService(
       "Eureka",
-      ecs.ContainerImage.fromAsset(path.join(REPO_ROOT, "server", "eureka")),
+      ecs.ContainerImage.fromAsset(path.join(REPO_ROOT, "server", "eureka"), {
+        platform: ecr_assets.Platform.LINUX_AMD64,
+      }),
       8761,
       {
         SPRING_APPLICATION_NAME: "eureka",
@@ -86,7 +117,10 @@ export class CdkStack extends cdk.Stack {
 
     // 4. API Gateway (public, behind ALB)
     const apiGatewayImage = ecs.ContainerImage.fromAsset(
-      path.join(REPO_ROOT, "server", "api-gateway")
+      path.join(REPO_ROOT, "server", "api-gateway"),
+      {
+        platform: ecr_assets.Platform.LINUX_AMD64,
+      }
     );
 
     const apiGatewayService =
@@ -118,7 +152,10 @@ export class CdkStack extends cdk.Stack {
 
     // 5. Client (React SPA served via nginx, public)
     const clientImage = ecs.ContainerImage.fromAsset(
-      path.join(REPO_ROOT, "client")
+      path.join(REPO_ROOT, "client"),
+      {
+        platform: ecr_assets.Platform.LINUX_AMD64,
+      }
     );
 
     const clientService =
@@ -146,7 +183,10 @@ export class CdkStack extends cdk.Stack {
     createInternalService(
       "DocumentService",
       ecs.ContainerImage.fromAsset(
-        path.join(REPO_ROOT, "server", "document-service")
+        path.join(REPO_ROOT, "server", "document-service"),
+        {
+          platform: ecr_assets.Platform.LINUX_AMD64,
+        }
       ),
       8080,
       {
@@ -170,7 +210,10 @@ export class CdkStack extends cdk.Stack {
     createInternalService(
       "ChatService",
       ecs.ContainerImage.fromAsset(
-        path.join(REPO_ROOT, "server", "chat-service")
+        path.join(REPO_ROOT, "server", "chat-service"),
+        {
+          platform: ecr_assets.Platform.LINUX_AMD64,
+        }
       ),
       8082,
       {
@@ -186,7 +229,10 @@ export class CdkStack extends cdk.Stack {
     createInternalService(
       "LectureService",
       ecs.ContainerImage.fromAsset(
-        path.join(REPO_ROOT, "server", "lecture-service")
+        path.join(REPO_ROOT, "server", "lecture-service"),
+        {
+          platform: ecr_assets.Platform.LINUX_AMD64,
+        }
       ),
       8083,
       {

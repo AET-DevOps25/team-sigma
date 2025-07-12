@@ -5,6 +5,9 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecs_patterns from "aws-cdk-lib/aws-ecs-patterns";
 import * as ecr_assets from "aws-cdk-lib/aws-ecr-assets";
 import * as path from "path";
+import * as rds from "aws-cdk-lib/aws-rds";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 // Path to repository root (three levels up from this file: lib -> cdk -> infra -> team-sigma root)
@@ -17,13 +20,25 @@ export class CdkStack extends cdk.Stack {
     // The code that defines your stack goes here
 
     // 1. Networking
-    const vpc = new ec2.Vpc(this, "TeamSigmaVpc", {
-      maxAzs: 2, // need at least two AZs for ALB subnets
-      natGateways: 0, // still avoid NAT costs
+    // Update VPC to include private subnets for RDS
+    const vpc = new ec2.Vpc(this, 'TeamSigmaVpc', {
+      maxAzs: 2,
+      natGateways: 1, // Add 1 NAT Gateway for service discovery to work
       subnetConfiguration: [
         {
-          name: "public",
+          name: 'public',
           subnetType: ec2.SubnetType.PUBLIC,
+          cidrMask: 24,
+        },
+        {
+          name: 'private',
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          cidrMask: 24,
+        },
+        {
+          name: 'private-isolated',
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          cidrMask: 24,
         },
       ],
     });
@@ -53,13 +68,54 @@ export class CdkStack extends cdk.Stack {
       service: ec2.InterfaceVpcEndpointAwsService.SSM,
     });
 
+    // Create S3 bucket for document storage
+    const documentBucket = new s3.Bucket(this, 'DocumentBucket', {
+      bucketName: `team-sigma-documents-${this.account}-${this.region}`,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test
+      autoDeleteObjects: true, // for dev/test
+    });
+
+    // Create RDS database
+    const dbCredentials = rds.Credentials.fromGeneratedSecret('postgres', {
+      secretName: 'team-sigma-db-credentials',
+    });
+
+    const database = new rds.DatabaseInstance(this, 'Database', {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_15,
+      }),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // cheapest
+      credentials: dbCredentials,
+      vpc,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      databaseName: 'teamsgima',
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test
+      deleteAutomatedBackups: true, // for dev/test
+      backupRetention: cdk.Duration.days(0), // no backups for cost savings
+    });
+
     // 2. ECS Cluster with Cloud Map service discovery so that the microservices can reach each other via DNS (e.g. http://eureka:8761)
     const cluster = new ecs.Cluster(this, "TeamSigmaCluster", {
       vpc,
       defaultCloudMapNamespace: {
         name: "team-sigma.local",
+        type: cdk.aws_servicediscovery.NamespaceType.DNS_PRIVATE,
       },
     });
+
+    // Create a security group for internal service communication
+    const internalServicesSecurityGroup = new ec2.SecurityGroup(this, 'InternalServicesSecurityGroup', {
+      vpc,
+      description: 'Security group for internal ECS services communication',
+      allowAllOutbound: true,
+    });
+
+    // Allow all internal services to communicate with each other
+    internalServicesSecurityGroup.addIngressRule(
+      internalServicesSecurityGroup,
+      ec2.Port.allTraffic(),
+      'Allow communication between internal services'
+    );
 
     // Helper function to create a simple FargateService for internal services (no public load balancer)
     const createInternalService = (
@@ -90,6 +146,8 @@ export class CdkStack extends cdk.Stack {
         taskDefinition: taskDef,
         desiredCount: 1,
         serviceName: id.toLowerCase(),
+        securityGroups: [internalServicesSecurityGroup],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }, // Move to private subnets for DNS resolution
         capacityProviderStrategies: [
           { capacityProvider: "FARGATE_SPOT", weight: 1 }, // use spot pricing
         ],
@@ -98,24 +156,17 @@ export class CdkStack extends cdk.Stack {
           name: id.toLowerCase(),
         },
       });
+
+      // Grant S3 access to task role
+      documentBucket.grantReadWrite(taskDef.taskRole);
+      
+      // Grant access to database secret
+      if (database.secret) {
+        database.secret.grantRead(taskDef.taskRole);
+      }
     };
 
-    // 3. Eureka service (internal)
-    createInternalService(
-      "Eureka",
-      ecs.ContainerImage.fromAsset(path.join(REPO_ROOT, "server", "eureka"), {
-        platform: ecr_assets.Platform.LINUX_AMD64,
-      }),
-      8761,
-      {
-        SPRING_APPLICATION_NAME: "eureka",
-        SERVER_PORT: "8761",
-        EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false",
-        EUREKA_CLIENT_FETCH_REGISTRY: "false",
-      }
-    );
-
-    // 4. API Gateway (public, behind ALB)
+    // 3. API Gateway (public, behind ALB)
     const apiGatewayImage = ecs.ContainerImage.fromAsset(
       path.join(REPO_ROOT, "server", "api-gateway"),
       {
@@ -131,6 +182,7 @@ export class CdkStack extends cdk.Stack {
           cluster,
           desiredCount: 1,
           publicLoadBalancer: true,
+          securityGroups: [internalServicesSecurityGroup],
           capacityProviderStrategies: [
             { capacityProvider: "FARGATE_SPOT", weight: 1 },
           ],
@@ -143,43 +195,83 @@ export class CdkStack extends cdk.Stack {
             environment: {
               SPRING_APPLICATION_NAME: "api-gateway",
               SERVER_PORT: "8080",
-              EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:
-                "http://eureka.team-sigma.local:8761/eureka/",
+              // Eureka configuration
+              EUREKA_CLIENT_ENABLED: "true",
+              EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
             },
           },
         }
       );
 
-    // 5. Client (React SPA served via nginx, public)
-    const clientImage = ecs.ContainerImage.fromAsset(
-      path.join(REPO_ROOT, "client"),
+    // Configure health check for the API Gateway
+    apiGatewayService.targetGroup.configureHealthCheck({
+      path: '/actuator/health',
+      healthyHttpCodes: '200',
+      interval: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(5),
+      healthyThresholdCount: 2,
+      unhealthyThresholdCount: 3,
+    });
+
+    // Register API Gateway with service discovery manually
+    apiGatewayService.service.enableCloudMap({
+      name: 'api-gateway',
+      cloudMapNamespace: cluster.defaultCloudMapNamespace,
+    });
+
+    // // 5. Client (React SPA served via nginx, public)
+    // const clientImage = ecs.ContainerImage.fromAsset(
+    //   path.join(REPO_ROOT, "client"),
+    //   {
+    //     platform: ecr_assets.Platform.LINUX_AMD64,
+    //   }
+    // );
+
+    // const clientService =
+    //   new ecs_patterns.ApplicationLoadBalancedFargateService(
+    //     this,
+    //     "ClientService",
+    //     {
+    //       cluster,
+    //       desiredCount: 1,
+    //       publicLoadBalancer: true,
+    //       securityGroups: [internalServicesSecurityGroup],
+    //       capacityProviderStrategies: [
+    //         { capacityProvider: "FARGATE_SPOT", weight: 1 },
+    //       ],
+    //       minHealthyPercent: 0,
+    //       memoryLimitMiB: 512,
+    //       cpu: 256,
+    //       taskImageOptions: {
+    //         image: clientImage,
+    //         containerPort: 80,
+    //         environment: {
+    //           API_GATEWAY_URL: `http://${apiGatewayService.loadBalancer.loadBalancerDnsName}`,
+    //         },
+    //       },
+    //     }
+    //   );
+
+    // 4. Eureka Service Registry
+    createInternalService(
+      "Eureka",
+      ecs.ContainerImage.fromAsset(
+        path.join(REPO_ROOT, "server", "eureka"),
+        {
+          platform: ecr_assets.Platform.LINUX_AMD64,
+        }
+      ),
+      8761,
       {
-        platform: ecr_assets.Platform.LINUX_AMD64,
+        SPRING_APPLICATION_NAME: "eureka",
+        SERVER_PORT: "8761",
+        EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false",
+        EUREKA_CLIENT_FETCH_REGISTRY: "false",
+        EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false",
       }
     );
 
-    const clientService =
-      new ecs_patterns.ApplicationLoadBalancedFargateService(
-        this,
-        "ClientService",
-        {
-          cluster,
-          desiredCount: 1,
-          publicLoadBalancer: true,
-          capacityProviderStrategies: [
-            { capacityProvider: "FARGATE_SPOT", weight: 1 },
-          ],
-          minHealthyPercent: 0,
-          memoryLimitMiB: 512,
-          cpu: 256,
-          taskImageOptions: {
-            image: clientImage,
-            containerPort: 80,
-          },
-        }
-      );
-
-    // 6. Remaining internal microservices (document, chat, lecture, weaviate, minio, postgres)
+    // 5. Remaining internal microservices (document, chat, lecture, weaviate)
     createInternalService(
       "DocumentService",
       ecs.ContainerImage.fromAsset(
@@ -192,18 +284,18 @@ export class CdkStack extends cdk.Stack {
       {
         SPRING_APPLICATION_NAME: "document-service",
         SERVER_PORT: "8080",
-        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:
-          "http://eureka.team-sigma.local:8761/eureka/",
-        WEAVIATE_URL: "http://weaviate.team-sigma.local:8080",
-        MINIO_URL: "http://minio.team-sigma.local:9000",
-        MINIO_ACCESS_KEY: "minioadmin",
-        MINIO_SECRET_KEY: "minioadmin",
-        POSTGRES_HOST: "postgres.team-sigma.local",
-        POSTGRES_PORT: "5432",
-        POSTGRES_DB: "document_db",
-        POSTGRES_USER: "postgres",
-        POSTGRES_PASSWORD: "postgres",
+        WEAVIATE_URL: "http://weaviate:8080",
+        // S3 configuration
+        AWS_REGION: this.region,
+        S3_BUCKET_NAME: documentBucket.bucketName,
+        // RDS configuration
+        DB_HOST: database.instanceEndpoint.hostname,
+        DB_PORT: database.instanceEndpoint.port.toString(),
+        DB_NAME: 'teamsgima',
+        DB_SECRET_ARN: database.secret?.secretArn ?? '',
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
+        // Eureka configuration
+        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
       }
     );
 
@@ -219,10 +311,10 @@ export class CdkStack extends cdk.Stack {
       {
         SPRING_APPLICATION_NAME: "chat-service",
         SERVER_PORT: "8082",
-        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:
-          "http://eureka.team-sigma.local:8761/eureka/",
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
+        // Eureka configuration
+        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
       }
     );
 
@@ -238,13 +330,13 @@ export class CdkStack extends cdk.Stack {
       {
         SPRING_APPLICATION_NAME: "lecture-service",
         SERVER_PORT: "8083",
-        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:
-          "http://eureka.team-sigma.local:8761/eureka/",
-        POSTGRES_HOST: "postgres.team-sigma.local",
-        POSTGRES_PORT: "5432",
-        POSTGRES_DB: "lecture_db",
-        POSTGRES_USER: "postgres",
-        POSTGRES_PASSWORD: "postgres",
+        // RDS configuration
+        DB_HOST: database.instanceEndpoint.hostname,
+        DB_PORT: database.instanceEndpoint.port.toString(),
+        DB_NAME: 'teamsgima',
+        DB_SECRET_ARN: database.secret?.secretArn ?? '',
+        // Eureka configuration
+        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
       }
     );
 
@@ -265,28 +357,26 @@ export class CdkStack extends cdk.Stack {
       }
     );
 
-    createInternalService(
-      "Minio",
-      ecs.ContainerImage.fromRegistry(
-        "minio/minio:RELEASE.2025-05-24T17-08-30Z"
-      ),
-      9000,
-      {
-        MINIO_ROOT_USER: "minioadmin",
-        MINIO_ROOT_PASSWORD: "minioadmin",
-      }
-    );
+    // Output the database endpoint and S3 bucket for reference
+    new cdk.CfnOutput(this, 'DatabaseEndpoint', {
+      value: database.instanceEndpoint.hostname,
+      description: 'RDS Database endpoint',
+    });
 
-    createInternalService(
-      "Postgres",
-      ecs.ContainerImage.fromRegistry("postgres:15-alpine"),
-      5432,
-      {
-        POSTGRES_USER: "postgres",
-        POSTGRES_PASSWORD: "postgres",
-        POSTGRES_DB: "postgres",
-      }
-    );
+    new cdk.CfnOutput(this, 'S3BucketName', {
+      value: documentBucket.bucketName,
+      description: 'S3 bucket for document storage',
+    });
+
+    new cdk.CfnOutput(this, 'ApiGatewayUrl', {
+      value: apiGatewayService.loadBalancer.loadBalancerDnsName,
+      description: 'API Gateway Load Balancer URL',
+    });
+
+    // new cdk.CfnOutput(this, 'ClientUrl', {
+    //   value: clientService.loadBalancer.loadBalancerDnsName,
+    //   description: 'Client Load Balancer URL',
+    // });
 
     // example resource
     // const queue = new sqs.Queue(this, 'CdkQueue', {

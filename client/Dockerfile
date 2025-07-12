@@ -8,5 +8,8 @@ COPY ./src/ ./src/
 RUN bun run build
 
 FROM nginx:mainline-alpine-slim
-COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Set default API Gateway URL if not provided
+ENV API_GATEWAY_URL=http://localhost:8080

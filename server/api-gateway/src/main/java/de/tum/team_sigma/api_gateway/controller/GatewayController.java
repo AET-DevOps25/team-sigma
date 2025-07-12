@@ -21,6 +21,17 @@ public class GatewayController {
     @Autowired
     private DiscoveryClient discoveryClient;
 
+    @GetMapping("/")
+    @Operation(summary = "Root endpoint", description = "Simple root endpoint for basic health check")
+    @ApiResponse(responseCode = "200", description = "Gateway is running")
+    public ResponseEntity<Map<String, String>> root() {
+        Map<String, String> response = new HashMap<>();
+        response.put("service", "API Gateway");
+        response.put("status", "UP");
+        response.put("message", "Team Sigma API Gateway is running");
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/api/gateway/health")
     @Operation(summary = "Gateway health check", description = "Check if the API Gateway is running")
     @ApiResponse(responseCode = "200", description = "Gateway is healthy")

@@ -19,5 +19,21 @@ spec:
         image: {{ .image }}
         imagePullPolicy: Always
         ports:
-        - containerPort: {{ .targetPort }}
+        - containerPort: {{ .containerPort }}
+        {{- if .env }}
+        env:
+        {{- range .env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- else if .valueFrom }}
+          valueFrom:
+            {{- if .valueFrom.secretKeyRef }}
+            secretKeyRef:
+              name: {{ .valueFrom.secretKeyRef.name }}
+              key: {{ .valueFrom.secretKeyRef.key }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
 {{- end }} 

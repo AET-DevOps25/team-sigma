@@ -70,6 +70,15 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export interface SummaryRequest {
+  document_id: string;
+}
+
+export interface SummaryResponse {
+  document_id: string;
+  summary: string;
+}
+
 export interface Lecture {
   id: number;
   name: string;
@@ -222,6 +231,25 @@ const api = {
   getQuizQuestions: async (slideId: string): Promise<QuizQuestion[]> => {
     const response = await fetch(`${API_BASE}/api/quiz/${slideId}`);
     if (!response.ok) throw new Error("Failed to fetch quiz questions");
+    return response.json();
+  },
+
+  // Summary service endpoints
+  generateSummary: async (request: SummaryRequest): Promise<SummaryResponse> => {
+    const response = await fetch(`${API_BASE}/api/summary`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error('Failed to generate summary');
+    return response.json();
+  },
+
+  getSummaryHealth: async (): Promise<{ status: string; service: string }> => {
+    const response = await fetch(`${API_BASE}/api/summary/health`);
+    if (!response.ok) throw new Error("Failed to fetch summary service health");
     return response.json();
   },
 
@@ -453,6 +481,23 @@ export function useQuizQuestions(slideId: string | undefined) {
     queryFn: () => api.getQuizQuestions(slideId!),
     enabled: !!slideId,
     staleTime: 300000, // 5 minutes
+  });
+}
+
+// Summary hooks
+export function useGenerateSummary() {
+  return useMutation({
+    mutationFn: (request: SummaryRequest) => api.generateSummary(request),
+  });
+}
+
+export function useSummaryHealth() {
+  return useQuery({
+    queryKey: ["summary", "health"],
+    queryFn: api.getSummaryHealth,
+    refetchInterval: 3000, // Check every 3 seconds
+    retry: 3,
+    staleTime: 0, // Always consider stale so it refetches
   });
 }
 

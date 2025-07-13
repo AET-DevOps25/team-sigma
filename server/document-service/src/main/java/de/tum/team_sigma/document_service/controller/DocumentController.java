@@ -252,6 +252,30 @@ public class DocumentController {
         }
     }
     
+    @GetMapping("/{id}/chunks")
+    @Operation(summary = "Get all document chunks", description = "Retrieve all chunks for a specific document in order")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Document chunks retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = SimilarChunkResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Document not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<List<SimilarChunkResponse>> getDocumentChunks(
+            @Parameter(description = "Document ID", required = true)
+            @PathVariable Long id) {
+        
+        try {
+            List<SimilarChunkResponse> chunks = documentService.getAllDocumentChunks(id);
+            return ResponseEntity.ok(chunks);
+        } catch (RuntimeException e) {
+            logger.error("Document not found with id: {}", id);
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to get chunks for document with id: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
     @GetMapping("/content-types")
     @Operation(summary = "Get documents by content type", description = "Filter documents by their content type")
     @ApiResponses(value = {

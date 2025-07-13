@@ -69,6 +69,23 @@ services:
     networks:
       - spring-cloud-network
 
+  summary-service:
+    build:
+      context: ../server/summary-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_APPLICATION_NAME=summary-service
+      - SERVER_PORT=8084
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - ENVIRONMENT=docker
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - eureka
+      - document-service
+    networks:
+      - spring-cloud-network
+
   lecture-service:
     build:
       context: ../server/lecture-service

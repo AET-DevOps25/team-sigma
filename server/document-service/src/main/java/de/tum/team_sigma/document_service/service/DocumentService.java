@@ -390,6 +390,34 @@ public class DocumentService {
         }
     }
     
+    @Transactional(readOnly = true)
+    public List<SimilarChunkResponse> getAllDocumentChunks(Long documentId) {
+        try {
+            logger.info("Getting all chunks for document ID: {}", documentId);
+            
+            Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Document not found with id: " + documentId));
+            
+            List<DocumentChunk> chunks = documentChunkRepository.findByDocumentIdOrderByChunkIndex(documentId);            
+            List<SimilarChunkResponse> responses = chunks.stream()
+                .map(chunk -> {
+                    SimilarChunkResponse response = new SimilarChunkResponse();
+                    response.setDocumentId(chunk.getDocument().getId());
+                    response.setChunkIndex(chunk.getChunkIndex());
+                    response.setText(chunk.getChunkText());
+                    return response;
+                })
+                .collect(Collectors.toList());
+            
+            logger.info("Successfully retrieved {} chunks for document ID: {}", responses.size(), documentId);
+            return responses;
+            
+        } catch (Exception e) {
+            logger.error("Failed to get chunks for document ID: {}", documentId, e);
+            throw new RuntimeException("Failed to get document chunks", e);
+        }
+    }
+    
     
     public Map<String, Object> addMessageToConversation(Long id, String messageType, String content) {
         Document document = documentRepository.findById(id)

@@ -35,6 +35,14 @@ scrape_configs:
     scrape_interval: 15s
     scrape_timeout: 10s
 
+  # Summary Service (Python FastAPI)
+  - job_name: 'summary-service'
+    static_configs:
+      - targets: ['summary-service:8084']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
   # Lecture Service
   - job_name: 'lecture-service'
     static_configs:

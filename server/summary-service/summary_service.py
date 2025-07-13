@@ -27,10 +27,15 @@ SUMMARY_PROMPT = """You are an expert document summarizer. Your task is to creat
 
 INSTRUCTIONS:
 1. Create a concise but comprehensive summary that captures the main themes, key points, and important details
-2. Structure your summary with clear sections if the content warrants it
-3. Focus on the most important information and insights
-4. Be objective and factual, avoiding personal opinions
-5. If the document contains specific data, examples, or conclusions, include them in your summary
+2. Use markdown formatting to structure your summary with clear sections, headings, and bullet points
+3. Structure your response with the following format:
+   - Start with a brief overview paragraph
+   - Use ## headings for main sections
+   - Use bullet points (•) for key information within sections
+   - Use **bold** for important terms or concepts
+   - Use *italics* for emphasis where appropriate
+4. Focus on the most important information and insights
+5. Be objective and factual, avoiding personal opinions
 6. Aim for a summary that is about 10-20% of the original length but captures all essential information
 
 DOCUMENT CONTENT:

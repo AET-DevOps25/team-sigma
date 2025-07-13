@@ -319,6 +319,25 @@ export class CdkStack extends cdk.Stack {
     );
 
     createInternalService(
+      "SummaryService",
+      ecs.ContainerImage.fromAsset(
+        path.join(REPO_ROOT, "server", "summary-service"),
+        {
+          platform: ecr_assets.Platform.LINUX_AMD64,
+        }
+      ),
+      8084,
+      {
+        SPRING_APPLICATION_NAME: "summary-service",
+        SERVER_PORT: "8084",
+        ENVIRONMENT: "docker",
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
+        // Eureka configuration
+        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+      }
+    );
+
+    createInternalService(
       "LectureService",
       ecs.ContainerImage.fromAsset(
         path.join(REPO_ROOT, "server", "lecture-service"),

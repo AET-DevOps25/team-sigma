@@ -48,4 +48,12 @@ public class ApiGatewayApplication {
                 .filter(lb("lecture-service"))
                 .build();
     }
+
+    @Bean
+    public RouterFunction<ServerResponse> summaryServiceRouteConfig() {
+        return route("summary-service")
+                .route(path("/api/summary/**"), http())
+                .filter(lb("summary-service"))
+                .build();
+    }
 }

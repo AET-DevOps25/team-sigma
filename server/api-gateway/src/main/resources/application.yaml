@@ -6,18 +6,25 @@ spring:
     gateway:
       routes:
         - id: document-service-api
-          uri: http://document-service:8080
+          uri: lb://document-service
           predicates:
             - Path=/api/documents/**, /api/documents
           filters:
             # Preserve the full path so that "/api/documents" reaches the backend unmodified
             - StripPrefix=0
         - id: lecture-service-api
-          uri: http://lecture-service:8083
+          uri: lb://lecture-service
           predicates:
             - Path=/api/lectures/**, /api/lectures
           filters:
             # Preserve the full path so that "/api/lectures" reaches the backend unmodified
+            - StripPrefix=0
+        - id: summary-service-api
+          uri: lb://SUMMARY-SERVICE
+          predicates:
+            - Path=/api/summary/**, /api/summary
+          filters:
+            # Preserve the full path so that "/api/summary" reaches the backend unmodified
             - StripPrefix=0
       globalcors:
         corsConfigurations:
@@ -42,19 +49,28 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
   health:
     defaults:
       enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 eureka:
   client:
-    enabled: ${EUREKA_CLIENT_ENABLED:false}  # Enable/disable Eureka client via environment variable
+    enabled: ${EUREKA_CLIENT_ENABLED:true}  # Enable/disable Eureka client via environment variable
     serviceUrl:
-      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 
 springdoc:
   swagger-ui:
@@ -77,6 +93,9 @@ springdoc:
       - url: /api/chat/v3/api-docs
         name: "Chat Service"
         primaryName: "Chat Service"
+      - url: /api/summary/v3/api-docs
+        name: "Summary Service"
+        primaryName: "Summary Service"
   api-docs:
     enabled: true
     path: /v3/api-docs
@@ -88,21 +107,4 @@ springdoc:
       paths-to-match: "/**"
       packages-to-scan: "de.tum.team_sigma.api_gateway"
 
-# Actuator configuration for monitoring
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-      base-path: /actuator
-  endpoint:
-    health:
-      show-details: always
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+# Actuator configuration for monitoring (merged above)

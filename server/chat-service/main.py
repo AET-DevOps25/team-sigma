@@ -18,7 +18,7 @@ load_dotenv(dotenv_path="../../.env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-EUREKA_SERVER = os.getenv("EUREKA_CLIENT_SERVICEURL_DEFAULTZONE", "http://localhost:8761/eureka/")
+EUREKA_SERVER = os.getenv("EUREKA_CLIENT_SERVICEURL_DEFAULTZONE")
 SERVICE_NAME = os.getenv("SPRING_APPLICATION_NAME", "chat-service")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8082"))
 
@@ -66,7 +66,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Prometheus metrics instrumentation
 instrumentator = Instrumentator()
 instrumentator.instrument(app).expose(app)
 
@@ -74,61 +73,8 @@ instrumentator.instrument(app).expose(app)
 async def health_check():
     return {"status": "healthy", "service": SERVICE_NAME}
 
-@app.get("/eureka/services")
-async def get_eureka_services():
-    """Debug endpoint to check if document service is discoverable via Eureka"""
-    try:
-        target_service = "document-service"
-        
-        try:
-            health_response = await eureka_client.do_service(
-                target_service,
-                "/api/documents/",
-                return_type="string"
-            )
-            
-            if health_response:
-                return {
-                    "services": {
-                        target_service: {
-                            "status": "discovered_and_accessible",
-                            "method": "eureka_client.do_service()",
-                            "health_check": "success"
-                        }
-                    },
-                    "library": "py-eureka-client"
-                }
-            else:
-                return {
-                    "services": {
-                        target_service: {"status": "not_found", "error": "Service not accessible"}
-                    },
-                    "library": "py-eureka-client"
-                }
-        except Exception as e:
-            return {
-                "services": {
-                    target_service: {"status": "discovery_failed", "error": str(e)}
-                },
-                "library": "py-eureka-client"
-            }
-        
-    except Exception as e:
-        logger.error(f"Failed to check Eureka services: {str(e)}")
-        return {"error": str(e)}
-
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """
-    Chat endpoint with RAG (Retrieval-Augmented Generation)
-    
-    Supports two modes:
-    1. General chat: searches across all documents (no document_id provided)
-    2. Document-specific chat: provide document_id to chat about a specific document
-    
-    Uses vector similarity search to find relevant text chunks and generates
-    AI responses based strictly on the retrieved document content.
-    """
     try:
         logger.info(f"Processing chat request: '{request.message}'")
         

@@ -1,5 +1,4 @@
 import logging
-import asyncio
 import json
 from typing import Optional, List
 from urllib.parse import quote_plus
@@ -21,15 +20,11 @@ class DocumentServiceClient:
             logger.info(f"Fetching document with ID: {document_id}")
             
             endpoint = f"/api/documents/{document_id}"
-            loop = asyncio.get_event_loop()
             
-            response = await loop.run_in_executor(
-                None,
-                lambda: eureka_client.do_service(
-                    self.service_name,
-                    endpoint,
-                    return_type="json"
-                )
+            response = await eureka_client.do_service(
+                self.service_name,
+                endpoint,
+                return_type="json"
             )
             
             if response:
@@ -62,15 +57,11 @@ class DocumentServiceClient:
             logger.info(f"Searching similar documents for query: '{query}' with limit: {limit}")
             
             endpoint = f"/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
-            loop = asyncio.get_event_loop()
             
-            response = await loop.run_in_executor(
-                None,
-                lambda: eureka_client.do_service(
-                    self.service_name,
-                    endpoint,
-                    return_type="json"
-                )
+            response = await eureka_client.do_service(
+                self.service_name,
+                endpoint,
+                return_type="json"
             )
             
             if response:
@@ -110,23 +101,19 @@ class DocumentServiceClient:
             logger.info(f"Adding {message_type} message to document {document_id}")
             
             endpoint = f"/api/documents/{document_id}/conversation"
-            loop = asyncio.get_event_loop()
             
             request_body = {
                 "messageType": message_type,
                 "content": content
             }
             
-            response = await loop.run_in_executor(
-                None,
-                lambda: eureka_client.do_service(
-                    self.service_name,
-                    endpoint,
-                    return_type="json",
-                    method="POST",
-                    data=request_body,
-                    headers={"Content-Type": "application/json"}
-                )
+            response = await eureka_client.do_service(
+                self.service_name,
+                endpoint,
+                return_type="json",
+                method="POST",
+                data=request_body,
+                headers={"Content-Type": "application/json"}
             )
             
             if response:

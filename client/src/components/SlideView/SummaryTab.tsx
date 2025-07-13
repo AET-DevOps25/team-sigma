@@ -3,19 +3,22 @@ import { BookOpen, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Document } from "../../hooks/useApi";
 import { useGenerateSummary, useSummaryHealth } from "../../hooks/useApi";
-import { Button } from "../ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SummaryTabProps {
   document: Document;
 }
 
 const SummaryTab: React.FC<SummaryTabProps> = ({ document }) => {
-  const [summary, setSummary] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const queryClient = useQueryClient();
   const generateSummaryMutation = useGenerateSummary();
   const { data: summaryHealth, isLoading: isHealthLoading, error: healthError } = useSummaryHealth();
 
   const isSummaryServiceAvailable = summaryHealth?.status === 'healthy' && !healthError;
+  
+  const cachedSummary = queryClient.getQueryData<string>(['summary', document.id]);
+  const [summary, setSummary] = useState<string | null>(cachedSummary || null);
 
   const handleGenerateSummary = async () => {
     if (!document.id || !isSummaryServiceAvailable) return;
@@ -25,25 +28,29 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ document }) => {
       const result = await generateSummaryMutation.mutateAsync({
         document_id: document.id.toString()
       });
+      
+      queryClient.setQueryData(['summary', document.id], result.summary);
       setSummary(result.summary);
     } catch (error) {
       console.error('Failed to generate summary:', error);
-      setSummary('Failed to generate summary. Please try again.');
+      const errorMessage = 'Failed to generate summary. Please try again.';
+      setSummary(errorMessage);
     } finally {
       setIsGenerating(false);
     }
   };
 
   useEffect(() => {
-    if (document.id && isSummaryServiceAvailable) {
+    if (cachedSummary) {
+      setSummary(cachedSummary);
+      return;
+    }
+    
+    if (document.id && isSummaryServiceAvailable && !cachedSummary) {
       handleGenerateSummary();
     }
-  }, [document.id, isSummaryServiceAvailable]);
+  }, [document.id, isSummaryServiceAvailable, cachedSummary]);
 
-  const handleRefreshSummary = () => {
-    setSummary(null);
-    handleGenerateSummary();
-  };
 
   if (isHealthLoading || !isSummaryServiceAvailable) {
     return (
@@ -67,20 +74,10 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ document }) => {
 
   return (
     <div className="p-6">
-      <div className="flex flex-row items-end justify-between mb-4">
-        <h3 className="text-lg font-semibold mb-4 flex items-center">
-          <BookOpen className="h-5 w-5 mr-2" />
-          AI Summary
-        </h3>
-        <Button
-          onClick={handleRefreshSummary}
-          disabled={isGenerating}
-          className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-          {isGenerating ? 'Generating...' : 'Refresh'}
-        </Button>
-      </div>
+      <h3 className="text-lg font-semibold mb-4 flex items-center">
+        <BookOpen className="h-5 w-5 mr-2" />
+        AI Summary
+      </h3>
 
       <div>
         {isGenerating ? (

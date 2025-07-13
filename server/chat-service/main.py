@@ -145,21 +145,6 @@ async def chat(request: ChatRequest):
         
         chunks = await document_client.search_similar_chunks(request.message, limit=5)
         
-        # if request.document_id:
-        #     document = await document_client.get_document_by_id(request.document_id)
-        #     if not document:
-        #         raise HTTPException(status_code=404, detail=f"Document with ID {request.document_id} not found")
-             
-        #     # Filter to only include chunks from the specific document
-        #     chunks = [chunk for chunk in chunks if chunk.document_id == document.id]
-             
-        #     if not chunks:
-        #         return ChatResponse(
-        #             response="I couldn't find any relevant information in this specific document to answer your question. Please make sure your question is related to the content of this document.",
-        #             document_info=document,
-        #             chunk_count=0
-        #         )
-        
         if not chunks:
             return ChatResponse(
                 response="I couldn't find any relevant information in the uploaded documents to answer your question. Please make sure your question is related to the content of the documents.",

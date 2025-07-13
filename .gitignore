@@ -4,3 +4,5 @@
 build/data/minio
 build/data/postgres
 build/data/weaviate
+build/data/grafana
+build/data/prometheus

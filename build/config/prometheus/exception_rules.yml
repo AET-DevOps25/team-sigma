@@ -1,0 +1,20 @@
+groups:
+  - name: service_exceptions
+    rules:
+      - alert: High5xxErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0 or rate(http_requests_total{status=~"5.."}[5m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx error detected"
+          description: "Service is experiencing 5xx errors"
+
+      - alert: High4xxErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"4.."}[5m]) > 0 or rate(http_requests_total{status=~"4.."}[5m]) > 0
+        for: 0s
+        labels:
+          severity: warning
+        annotations:
+          summary: "4xx error detected"
+          description: "Service is experiencing 4xx errors" 

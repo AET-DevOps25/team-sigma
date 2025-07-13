@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from models import DocumentModel, DocumentChunkModel, ChatRequest, ChatResponse
 from chat_service import ChatService
 from document_service_client import DocumentServiceClient
+from prometheus_fastapi_instrumentator import Instrumentator
 
 load_dotenv(dotenv_path="../../.env")
 
@@ -64,6 +65,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Prometheus metrics instrumentation
+instrumentator = Instrumentator()
+instrumentator.instrument(app).expose(app)
 
 @app.get("/api/chat/health")
 async def health_check():
@@ -139,21 +144,6 @@ async def chat(request: ChatRequest):
                 logger.error(f"Failed to save user message to document {request.document_id}: {str(e)}")
         
         chunks = await document_client.search_similar_chunks(request.message, limit=5)
-        
-        # if request.document_id:
-        #     document = await document_client.get_document_by_id(request.document_id)
-        #     if not document:
-        #         raise HTTPException(status_code=404, detail=f"Document with ID {request.document_id} not found")
-             
-        #     # Filter to only include chunks from the specific document
-        #     chunks = [chunk for chunk in chunks if chunk.document_id == document.id]
-             
-        #     if not chunks:
-        #         return ChatResponse(
-        #             response="I couldn't find any relevant information in this specific document to answer your question. Please make sure your question is related to the content of this document.",
-        #             document_info=document,
-        #             chunk_count=0
-        #         )
         
         if not chunks:
             return ChatResponse(

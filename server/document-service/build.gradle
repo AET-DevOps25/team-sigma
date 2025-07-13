@@ -31,6 +31,10 @@ dependencies {
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:2.6.0'
 	
+	// Monitoring dependencies
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+	
 	// MinIO client for file storage
 	implementation 'io.minio:minio:8.5.7'
 	

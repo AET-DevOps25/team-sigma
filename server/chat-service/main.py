@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from models import DocumentModel, DocumentChunkModel, ChatRequest, ChatResponse
 from chat_service import ChatService
 from document_service_client import DocumentServiceClient
+from prometheus_fastapi_instrumentator import Instrumentator
 
 load_dotenv(dotenv_path="../../.env")
 
@@ -64,6 +65,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Prometheus metrics instrumentation
+instrumentator = Instrumentator()
+instrumentator.instrument(app).expose(app)
 
 @app.get("/api/chat/health")
 async def health_check():

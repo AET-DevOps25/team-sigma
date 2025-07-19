@@ -1,8 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_BASE = "http://localhost:5173";
-
 // Types
 export interface GatewayHealth {
   service: string;
@@ -57,7 +55,7 @@ export interface ChatResponse {
 
 export interface ConversationMessage {
   messageIndex: number;
-  messageType: 'AI' | 'HUMAN';
+  messageType: "AI" | "HUMAN";
   content: string;
   createdAt: string;
 }
@@ -95,19 +93,19 @@ export interface LectureRequest {
 const api = {
   // Gateway endpoints
   getGatewayHealth: async (): Promise<GatewayHealth> => {
-    const response = await fetch(`${API_BASE}/api/gateway/health`);
+    const response = await fetch(`/api/gateway/health`);
     if (!response.ok) throw new Error("Failed to fetch gateway health");
     return response.json();
   },
 
   getServices: async (): Promise<ServicesResponse> => {
-    const response = await fetch(`${API_BASE}/api/gateway/services`);
+    const response = await fetch(`/api/gateway/services`);
     if (!response.ok) throw new Error("Failed to fetch services");
     return response.json();
   },
 
   getServiceApiDocs: async (serviceName: string): Promise<string> => {
-    const response = await fetch(`${API_BASE}/api/${serviceName}/v3/api-docs`);
+    const response = await fetch(`/api/${serviceName}/v3/api-docs`);
     if (!response.ok) throw new Error("Failed to fetch service API docs");
     return response.text();
   },
@@ -115,15 +113,15 @@ const api = {
   // Document service endpoints
   getDocuments: async (lectureId?: string): Promise<Document[]> => {
     const url = lectureId
-      ? `${API_BASE}/api/documents?lectureId=${encodeURIComponent(lectureId)}`
-      : `${API_BASE}/api/documents`;
+      ? `/api/documents?lectureId=${encodeURIComponent(lectureId)}`
+      : `/api/documents`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch documents");
     return response.json();
   },
 
   getDocument: async (id: number): Promise<Document> => {
-    const response = await fetch(`${API_BASE}/api/documents/${id}`);
+    const response = await fetch(`/api/documents/${id}`);
     if (!response.ok) throw new Error("Failed to fetch document");
     return response.json();
   },
@@ -141,7 +139,7 @@ const api = {
       formData.append("description", metadata.description);
     }
 
-    const response = await fetch(`${API_BASE}/api/documents/upload`, {
+    const response = await fetch(`/api/documents/upload`, {
       method: "POST",
       body: formData,
     });
@@ -152,7 +150,7 @@ const api = {
 
   searchDocuments: async (query: string): Promise<Document[]> => {
     const response = await fetch(
-      `${API_BASE}/api/documents/search?q=${encodeURIComponent(query)}`
+      `/api/documents/search?q=${encodeURIComponent(query)}`
     );
     if (!response.ok) throw new Error("Failed to search documents");
     return response.json();
@@ -163,7 +161,7 @@ const api = {
     limit = 10
   ): Promise<Document[]> => {
     const response = await fetch(
-      `${API_BASE}/api/documents/search/similar?q=${encodeURIComponent(query)}&limit=${limit}`
+      `/api/documents/search/similar?q=${encodeURIComponent(query)}&limit=${limit}`
     );
     if (!response.ok) throw new Error("Failed to search similar documents");
     return response.json();
@@ -173,7 +171,7 @@ const api = {
     id: number,
     metadata: DocumentUploadRequest
   ): Promise<Document> => {
-    const response = await fetch(`${API_BASE}/api/documents/${id}`, {
+    const response = await fetch(`/api/documents/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(metadata),
@@ -184,7 +182,7 @@ const api = {
   },
 
   deleteDocument: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/api/documents/${id}`, {
+    const response = await fetch(`/api/documents/${id}`, {
       method: "DELETE",
     });
 
@@ -192,88 +190,92 @@ const api = {
   },
 
   downloadDocument: async (id: number): Promise<Blob> => {
-    const response = await fetch(`${API_BASE}/api/documents/${id}/download`);
+    const response = await fetch(`/api/documents/${id}/download`);
     if (!response.ok) throw new Error("Failed to download document");
     return response.blob();
   },
 
   getDocumentPdfUrl: (id: number): string => {
-    return `${API_BASE}/api/documents/${id}/download`;
+    return `/api/documents/${id}/download`;
   },
 
   clearDocumentConversation: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/api/documents/${id}/conversation`, {
-      method: 'DELETE',
+    const response = await fetch(`/api/documents/${id}/conversation`, {
+      method: "DELETE",
     });
-    if (!response.ok) throw new Error('Failed to clear conversation');
+    if (!response.ok) throw new Error("Failed to clear conversation");
   },
 
   // Chat service endpoints
   sendChatMessage: async (request: ChatRequest): Promise<ChatResponse> => {
-    const response = await fetch(`${API_BASE}/api/chat`, {
-      method: 'POST',
+    const response = await fetch(`/api/chat`, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
     });
-    if (!response.ok) throw new Error('Failed to send chat message');
+    if (!response.ok) throw new Error("Failed to send chat message");
     return response.json();
   },
 
   getChatHealth: async (): Promise<{ status: string; service: string }> => {
-    const response = await fetch(`${API_BASE}/api/chat/health`);
+    const response = await fetch(`/api/chat/health`);
     if (!response.ok) throw new Error("Failed to fetch chat service health");
     return response.json();
   },
 
   // Quiz service endpoints
   getQuizQuestions: async (slideId: string): Promise<QuizQuestion[]> => {
-    const response = await fetch(`${API_BASE}/api/quiz/${slideId}`);
+    const response = await fetch(`/api/quiz/${slideId}`);
     if (!response.ok) throw new Error("Failed to fetch quiz questions");
     return response.json();
   },
 
   // Summary service endpoints
-  generateSummary: async (request: SummaryRequest): Promise<SummaryResponse> => {
-    const response = await fetch(`${API_BASE}/api/summary`, {
-      method: 'POST',
+  generateSummary: async (
+    request: SummaryRequest
+  ): Promise<SummaryResponse> => {
+    const response = await fetch(`/api/summary`, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
     });
-    if (!response.ok) throw new Error('Failed to generate summary');
+    if (!response.ok) throw new Error("Failed to generate summary");
     return response.json();
   },
 
   getSummaryHealth: async (): Promise<{ status: string; service: string }> => {
-    const response = await fetch(`${API_BASE}/api/summary/health`);
+    const response = await fetch(`/api/summary/health`);
     if (!response.ok) throw new Error("Failed to fetch summary service health");
     return response.json();
   },
 
   // Lecture service endpoints
   getLectures: async (): Promise<Lecture[]> => {
-    const response = await fetch(`${API_BASE}/api/lectures`);
+    const response = await fetch(`/api/lectures`);
     if (!response.ok) throw new Error("Failed to fetch lectures");
     return response.json();
   },
 
   getLecturesByUser: async (userId: string): Promise<Lecture[]> => {
-    const response = await fetch(`${API_BASE}/api/lectures/user/${encodeURIComponent(userId)}`);
+    const response = await fetch(
+      `/api/lectures/user/${encodeURIComponent(userId)}`
+    );
     if (!response.ok) throw new Error("Failed to fetch user lectures");
     return response.json();
   },
 
   getLecture: async (id: number): Promise<Lecture> => {
-    const response = await fetch(`${API_BASE}/api/lectures/${id}`);
+    const response = await fetch(`/api/lectures/${id}`);
     if (!response.ok) throw new Error("Failed to fetch lecture");
     return response.json();
   },
 
   createLecture: async (request: LectureRequest): Promise<Lecture> => {
-    const response = await fetch(`${API_BASE}/api/lectures`, {
+    const response = await fetch(`/api/lectures`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -282,8 +284,11 @@ const api = {
     return response.json();
   },
 
-  updateLecture: async (id: number, request: LectureRequest): Promise<Lecture> => {
-    const response = await fetch(`${API_BASE}/api/lectures/${id}`, {
+  updateLecture: async (
+    id: number,
+    request: LectureRequest
+  ): Promise<Lecture> => {
+    const response = await fetch(`/api/lectures/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -293,7 +298,7 @@ const api = {
   },
 
   deleteLecture: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/api/lectures/${id}`, {
+    const response = await fetch(`/api/lectures/${id}`, {
       method: "DELETE",
     });
     if (!response.ok) throw new Error("Failed to delete lecture");
@@ -415,13 +420,16 @@ export function useClearDocumentConversation() {
   return useMutation({
     mutationFn: (id: number) => api.clearDocumentConversation(id),
     onSuccess: (_, id) => {
-      queryClient.setQueryData(['documents', id], (oldData: Document | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          conversation: [],
-        };
-      });
+      queryClient.setQueryData(
+        ["documents", id],
+        (oldData: Document | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            conversation: [],
+          };
+        }
+      );
     },
   });
 }
@@ -536,7 +544,9 @@ export function useCreateLecture() {
     mutationFn: (request: LectureRequest) => api.createLecture(request),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["lectures"] });
-      queryClient.invalidateQueries({ queryKey: ["lectures", "user", variables.userId] });
+      queryClient.invalidateQueries({
+        queryKey: ["lectures", "user", variables.userId],
+      });
     },
   });
 }
@@ -545,12 +555,14 @@ export function useUpdateLecture() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, request }: { id: number; request: LectureRequest }) => 
+    mutationFn: ({ id, request }: { id: number; request: LectureRequest }) =>
       api.updateLecture(id, request),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["lectures", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["lectures"] });
-      queryClient.invalidateQueries({ queryKey: ["lectures", "user", variables.request.userId] });
+      queryClient.invalidateQueries({
+        queryKey: ["lectures", "user", variables.request.userId],
+      });
     },
   });
 }

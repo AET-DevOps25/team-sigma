@@ -8,11 +8,13 @@ import {
   useDeleteDocument,
   useDocumentDownload,
   useGatewayHealth,
+  useUpdateDocument,
   type Document,
   type DocumentUploadRequest,
 } from '../hooks/useApi';
 import { Button } from './ui/button';
 import { ConfirmDialog } from './ui/confirm-dialog';
+import { DocumentEditForm } from './DocumentEditForm';
 
 export function DocumentManager() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +25,10 @@ export function DocumentManager() {
   const [activeTab, setActiveTab] = useState<'list' | 'search' | 'similar' | 'upload'>('list');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
+  
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   const { data: gatewayHealth } = useGatewayHealth();
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments();
@@ -30,6 +36,7 @@ export function DocumentManager() {
   const { data: similarResults, isLoading: similarLoading } = useSimilarDocuments(similarQuery);
   
   const uploadMutation = useUploadDocument();
+  const updateMutation = useUpdateDocument();
   const deleteMutation = useDeleteDocument();
   const { downloadDocument, isDownloading } = useDocumentDownload();
 
@@ -61,6 +68,46 @@ export function DocumentManager() {
       console.error('Upload failed:', error);
       toast.error('Upload failed. Please try again.');
     }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!editingDocument || !editName.trim()) {
+      return;
+    }
+
+    const metadata: DocumentUploadRequest = {
+      name: editName.trim(),
+      description: editDescription.trim() || undefined,
+      lectureId: editingDocument.lectureId || "mock-id",
+    };
+
+    try {
+      await updateMutation.mutateAsync({ id: editingDocument.id, metadata });
+
+      setEditingDocument(null);
+      setEditName('');
+      setEditDescription('');
+
+      toast.success('Document updated successfully!');
+    } catch (error) {
+      console.error('Update failed:', error);
+      toast.error('Update failed. Please try again.');
+    }
+  };
+
+  const startEdit = (doc: Document) => {
+    setEditingDocument(doc);
+    setEditName(doc.name);
+    setEditDescription(doc.description || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingDocument(null);
+    setEditName('');
+    setEditDescription('');
   };
 
   const handleDelete = (id: number, name: string) => {
@@ -126,33 +173,58 @@ export function DocumentManager() {
             <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{doc.name}</h4>
-                  {doc.description && (
-                    <p className="text-sm text-gray-600 mt-1">{doc.description}</p>
+                  {editingDocument?.id === doc.id ? (
+                    <DocumentEditForm
+                      editName={editName}
+                      editDescription={editDescription}
+                      onNameChange={setEditName}
+                      onDescriptionChange={setEditDescription}
+                      onSave={handleUpdate}
+                      onCancel={cancelEdit}
+                      isLoading={updateMutation.isPending}
+                    />
+                  ) : (
+                    <>
+                      <h4 className="font-medium text-gray-900">{doc.name}</h4>
+                      {doc.description && (
+                        <p className="text-sm text-gray-600 mt-1">{doc.description}</p>
+                      )}
+                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                        <span>📁 {doc.originalFilename}</span>
+                        <span>📊 {formatFileSize(doc.fileSize)}</span>
+                        <span>📅 {formatDate(doc.createdAt)}</span>
+                        <span>🏷️ {doc.contentType}</span>
+                      </div>
+                    </>
                   )}
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                    <span>📁 {doc.originalFilename}</span>
-                    <span>📊 {formatFileSize(doc.fileSize)}</span>
-                    <span>📅 {formatDate(doc.createdAt)}</span>
-                    <span>🏷️ {doc.contentType}</span>
+                </div>
+                {editingDocument?.id !== doc.id && (
+                  <div className="flex items-center space-x-2 ml-4">
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEdit(doc);
+                      }}
+                      className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                    >
+                      ✏️ Edit
+                    </Button>
+                    <Button
+                      onClick={() => handleDownload(doc)}
+                      disabled={isDownloading}
+                      className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      {isDownloading ? '⏳' : '📥'} Download
+                    </Button>
+                    <Button
+                      onClick={() => handleDelete(doc.id, doc.name)}
+                      disabled={deleteMutation.isPending}
+                      className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 disabled:opacity-50"
+                    >
+                      {deleteMutation.isPending ? '⏳' : '🗑️'} Delete
+                    </Button>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2 ml-4">
-                  <Button
-                    onClick={() => handleDownload(doc)}
-                    disabled={isDownloading}
-                    className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50"
-                  >
-                    {isDownloading ? '⏳' : '📥'} Download
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(doc.id, doc.name)}
-                    disabled={deleteMutation.isPending}
-                    className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 disabled:opacity-50"
-                  >
-                    {deleteMutation.isPending ? '⏳' : '🗑️'} Delete
-                  </Button>
-                </div>
+                )}
               </div>
             </div>
           ))}

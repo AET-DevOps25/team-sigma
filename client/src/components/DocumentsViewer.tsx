@@ -5,16 +5,18 @@ import {
   useUploadDocument,
   useDeleteDocument,
   useDocumentDownload,
+  useUpdateDocument,
   type Lecture,
   type DocumentUploadRequest,
   type Document,
 } from '../hooks/useApi';
-import DocumentCard from './DocumentCard';
+
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { ConfirmDialog } from './ui/confirm-dialog';
+import { DocumentListCard } from './DocumentListCard';
 
 interface DocumentsViewerProps {
   selectedLecture: Lecture;
@@ -30,8 +32,13 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
   const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments(selectedLecture.id.toString());
   const uploadMutation = useUploadDocument();
+  const updateMutation = useUpdateDocument();
   const deleteMutation = useDeleteDocument();
   const { downloadDocument, isDownloading } = useDocumentDownload();
 
@@ -62,6 +69,46 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       console.error('Upload failed:', error);
       toast.error('Upload failed. Please try again.');
     }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!editingDocument || !editName.trim()) {
+      return;
+    }
+
+    const metadata: DocumentUploadRequest = {
+      name: editName.trim(),
+      description: editDescription.trim() || undefined,
+      lectureId: selectedLecture.id.toString(),
+    };
+
+    try {
+      await updateMutation.mutateAsync({ id: editingDocument.id, metadata });
+
+      setEditingDocument(null);
+      setEditName('');
+      setEditDescription('');
+
+      toast.success('Document updated successfully!');
+    } catch (error) {
+      console.error('Update failed:', error);
+      toast.error('Update failed. Please try again.');
+    }
+  };
+
+  const startEdit = (doc: Document) => {
+    setEditingDocument(doc);
+    setEditName(doc.name);
+    setEditDescription(doc.description || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingDocument(null);
+    setEditName('');
+    setEditDescription('');
   };
 
   const handleDelete = (id: number, name: string) => {
@@ -221,12 +268,20 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
             ) : documents && documents.length > 0 ? (
               <div className="grid gap-4">
                 {documents.map((doc) => (
-                  <DocumentCard 
-                    key={doc.id} 
-                    document={doc}
-                    showActions={true}
+                  <DocumentListCard
+                    key={doc.id}
+                    doc={doc}
+                    editingDocument={editingDocument}
+                    editName={editName}
+                    editDescription={editDescription}
+                    onNameChange={setEditName}
+                    onDescriptionChange={setEditDescription}
+                    onSave={handleUpdate}
+                    onCancel={cancelEdit}
+                    onStartEdit={startEdit}
                     onDownload={handleDownload}
                     onDelete={handleDelete}
+                    isUpdating={updateMutation.isPending}
                     isDownloading={isDownloading}
                     isDeleting={deleteMutation.isPending}
                   />

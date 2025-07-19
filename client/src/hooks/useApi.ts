@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { env } from "@/env";
 
-const API_BASE = "http://localhost:5173";
+const API_BASE = env.VITE_API_GATEWAY_URL;
 
 // Types
 export interface GatewayHealth {
@@ -57,7 +58,7 @@ export interface ChatResponse {
 
 export interface ConversationMessage {
   messageIndex: number;
-  messageType: 'AI' | 'HUMAN';
+  messageType: "AI" | "HUMAN";
   content: string;
   createdAt: string;
 }
@@ -202,22 +203,25 @@ const api = {
   },
 
   clearDocumentConversation: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/api/documents/${id}/conversation`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to clear conversation');
+    const response = await fetch(
+      `${API_BASE}/api/documents/${id}/conversation`,
+      {
+        method: "DELETE",
+      }
+    );
+    if (!response.ok) throw new Error("Failed to clear conversation");
   },
 
   // Chat service endpoints
   sendChatMessage: async (request: ChatRequest): Promise<ChatResponse> => {
     const response = await fetch(`${API_BASE}/api/chat`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
     });
-    if (!response.ok) throw new Error('Failed to send chat message');
+    if (!response.ok) throw new Error("Failed to send chat message");
     return response.json();
   },
 
@@ -235,15 +239,17 @@ const api = {
   },
 
   // Summary service endpoints
-  generateSummary: async (request: SummaryRequest): Promise<SummaryResponse> => {
+  generateSummary: async (
+    request: SummaryRequest
+  ): Promise<SummaryResponse> => {
     const response = await fetch(`${API_BASE}/api/summary`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
     });
-    if (!response.ok) throw new Error('Failed to generate summary');
+    if (!response.ok) throw new Error("Failed to generate summary");
     return response.json();
   },
 
@@ -261,7 +267,9 @@ const api = {
   },
 
   getLecturesByUser: async (userId: string): Promise<Lecture[]> => {
-    const response = await fetch(`${API_BASE}/api/lectures/user/${encodeURIComponent(userId)}`);
+    const response = await fetch(
+      `${API_BASE}/api/lectures/user/${encodeURIComponent(userId)}`
+    );
     if (!response.ok) throw new Error("Failed to fetch user lectures");
     return response.json();
   },
@@ -282,7 +290,10 @@ const api = {
     return response.json();
   },
 
-  updateLecture: async (id: number, request: LectureRequest): Promise<Lecture> => {
+  updateLecture: async (
+    id: number,
+    request: LectureRequest
+  ): Promise<Lecture> => {
     const response = await fetch(`${API_BASE}/api/lectures/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -415,13 +426,16 @@ export function useClearDocumentConversation() {
   return useMutation({
     mutationFn: (id: number) => api.clearDocumentConversation(id),
     onSuccess: (_, id) => {
-      queryClient.setQueryData(['documents', id], (oldData: Document | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          conversation: [],
-        };
-      });
+      queryClient.setQueryData(
+        ["documents", id],
+        (oldData: Document | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            conversation: [],
+          };
+        }
+      );
     },
   });
 }
@@ -536,7 +550,9 @@ export function useCreateLecture() {
     mutationFn: (request: LectureRequest) => api.createLecture(request),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["lectures"] });
-      queryClient.invalidateQueries({ queryKey: ["lectures", "user", variables.userId] });
+      queryClient.invalidateQueries({
+        queryKey: ["lectures", "user", variables.userId],
+      });
     },
   });
 }
@@ -545,12 +561,14 @@ export function useUpdateLecture() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, request }: { id: number; request: LectureRequest }) => 
+    mutationFn: ({ id, request }: { id: number; request: LectureRequest }) =>
       api.updateLecture(id, request),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["lectures", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["lectures"] });
-      queryClient.invalidateQueries({ queryKey: ["lectures", "user", variables.request.userId] });
+      queryClient.invalidateQueries({
+        queryKey: ["lectures", "user", variables.request.userId],
+      });
     },
   });
 }

@@ -7,12 +7,12 @@ import * as ecr_assets from "aws-cdk-lib/aws-ecr-assets";
 import * as path from "path";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
-// NEW IMPORTS FOR CLIENT DEPLOYMENT
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
+import * as route53 from "aws-cdk-lib/aws-route53";
+import * as r53_targets from "aws-cdk-lib/aws-route53-targets";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as s3_deployment from "aws-cdk-lib/aws-s3-deployment";
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 // Path to repository root (three levels up from this file: lib -> cdk -> infra -> team-sigma root)
 const REPO_ROOT = path.resolve(__dirname, "../../../");
@@ -25,22 +25,22 @@ export class CdkStack extends cdk.Stack {
 
     // 1. Networking
     // Update VPC to include private subnets for RDS
-    const vpc = new ec2.Vpc(this, 'TeamSigmaVpc', {
+    const vpc = new ec2.Vpc(this, "TeamSigmaVpc", {
       maxAzs: 2,
       natGateways: 1, // Add 1 NAT Gateway for service discovery to work
       subnetConfiguration: [
         {
-          name: 'public',
+          name: "public",
           subnetType: ec2.SubnetType.PUBLIC,
           cidrMask: 24,
         },
         {
-          name: 'private',
+          name: "private",
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
           cidrMask: 24,
         },
         {
-          name: 'private-isolated',
+          name: "private-isolated",
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
           cidrMask: 24,
         },
@@ -48,51 +48,54 @@ export class CdkStack extends cdk.Stack {
     });
 
     // Add VPC endpoints so tasks can reach AWS services without NAT Gateway
-    vpc.addGatewayEndpoint('S3Endpoint', {
+    vpc.addGatewayEndpoint("S3Endpoint", {
       service: ec2.GatewayVpcEndpointAwsService.S3,
     });
 
-    vpc.addInterfaceEndpoint('EcrDockerEndpoint', {
+    vpc.addInterfaceEndpoint("EcrDockerEndpoint", {
       service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
     });
 
-    vpc.addInterfaceEndpoint('EcrEndpoint', {
+    vpc.addInterfaceEndpoint("EcrEndpoint", {
       service: ec2.InterfaceVpcEndpointAwsService.ECR,
     });
 
-    vpc.addInterfaceEndpoint('CloudWatchLogsEndpoint', {
+    vpc.addInterfaceEndpoint("CloudWatchLogsEndpoint", {
       service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
     });
 
-    vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
+    vpc.addInterfaceEndpoint("SecretsManagerEndpoint", {
       service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
     });
 
-    vpc.addInterfaceEndpoint('SsmEndpoint', {
+    vpc.addInterfaceEndpoint("SsmEndpoint", {
       service: ec2.InterfaceVpcEndpointAwsService.SSM,
     });
 
     // Create S3 bucket for document storage
-    const documentBucket = new s3.Bucket(this, 'DocumentBucket', {
+    const documentBucket = new s3.Bucket(this, "DocumentBucket", {
       bucketName: `team-sigma-documents-${this.account}-${this.region}`,
       removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test
       autoDeleteObjects: true, // for dev/test
     });
 
     // Create RDS database
-    const dbCredentials = rds.Credentials.fromGeneratedSecret('postgres', {
-      secretName: 'team-sigma-db-credentials',
+    const dbCredentials = rds.Credentials.fromGeneratedSecret("postgres", {
+      secretName: "team-sigma-db-credentials",
     });
 
-    const database = new rds.DatabaseInstance(this, 'Database', {
+    const database = new rds.DatabaseInstance(this, "Database", {
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.VER_15,
       }),
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // cheapest
+      instanceType: ec2.InstanceType.of(
+        ec2.InstanceClass.T3,
+        ec2.InstanceSize.MICRO
+      ), // cheapest
       credentials: dbCredentials,
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-      databaseName: 'teamsgima',
+      databaseName: "teamsgima",
       removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test
       deleteAutomatedBackups: true, // for dev/test
       backupRetention: cdk.Duration.days(0), // no backups for cost savings
@@ -108,17 +111,21 @@ export class CdkStack extends cdk.Stack {
     });
 
     // Create a security group for internal service communication
-    const internalServicesSecurityGroup = new ec2.SecurityGroup(this, 'InternalServicesSecurityGroup', {
-      vpc,
-      description: 'Security group for internal ECS services communication',
-      allowAllOutbound: true,
-    });
+    const internalServicesSecurityGroup = new ec2.SecurityGroup(
+      this,
+      "InternalServicesSecurityGroup",
+      {
+        vpc,
+        description: "Security group for internal ECS services communication",
+        allowAllOutbound: true,
+      }
+    );
 
     // Allow all internal services to communicate with each other
     internalServicesSecurityGroup.addIngressRule(
       internalServicesSecurityGroup,
       ec2.Port.allTraffic(),
-      'Allow communication between internal services'
+      "Allow communication between internal services"
     );
 
     // Helper function to create a simple FargateService for internal services (no public load balancer)
@@ -126,7 +133,7 @@ export class CdkStack extends cdk.Stack {
       id: string,
       containerImage: ecs.ContainerImage,
       containerPort: number,
-      environment?: { [key: string]: string },
+      environment?: { [key: string]: string }
     ) => {
       const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
         memoryLimitMiB: 512, // lowest allowed for 0.25 vCPU
@@ -163,7 +170,7 @@ export class CdkStack extends cdk.Stack {
 
       // Grant S3 access to task role
       documentBucket.grantReadWrite(taskDef.taskRole);
-      
+
       // Grant access to database secret
       if (database.secret) {
         database.secret.grantRead(taskDef.taskRole);
@@ -201,7 +208,8 @@ export class CdkStack extends cdk.Stack {
               SERVER_PORT: "8080",
               // Eureka configuration
               EUREKA_CLIENT_ENABLED: "true",
-              EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+              EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:
+                "http://eureka:8761/eureka",
             },
           },
         }
@@ -209,8 +217,8 @@ export class CdkStack extends cdk.Stack {
 
     // Configure health check for the API Gateway
     apiGatewayService.targetGroup.configureHealthCheck({
-      path: '/actuator/health',
-      healthyHttpCodes: '200',
+      path: "/actuator/health",
+      healthyHttpCodes: "200",
       interval: cdk.Duration.seconds(30),
       timeout: cdk.Duration.seconds(5),
       healthyThresholdCount: 2,
@@ -219,12 +227,12 @@ export class CdkStack extends cdk.Stack {
 
     // Register API Gateway with service discovery manually
     apiGatewayService.service.enableCloudMap({
-      name: 'api-gateway',
+      name: "api-gateway",
       cloudMapNamespace: cluster.defaultCloudMapNamespace,
     });
 
     // 3b. Client (React SPA) hosted on S3 + CloudFront
-    const clientBucket = new s3.Bucket(this, 'ClientBucket', {
+    const clientBucket = new s3.Bucket(this, "ClientBucket", {
       bucketName: `team-sigma-client-${this.account}-${this.region}`,
       removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test convenience – change for production
       autoDeleteObjects: true, // for dev/test convenience – change for production
@@ -232,37 +240,60 @@ export class CdkStack extends cdk.Stack {
     });
 
     // Origin Access Identity so that only CloudFront can read from the bucket
-    const clientOai = new cloudfront.OriginAccessIdentity(this, 'ClientOAI');
+    const clientOai = new cloudfront.OriginAccessIdentity(this, "ClientOAI");
     clientBucket.grantRead(clientOai);
 
-    const clientDistribution = new cloudfront.Distribution(this, 'ClientDistribution', {
-      defaultRootObject: 'index.html',
-      defaultBehavior: {
-        origin: new origins.S3Origin(clientBucket, { originAccessIdentity: clientOai }),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      },
+    // === Domain management entirely in CDK ===
+    const domainName = "sigma-nemo.com";
+
+    // Route 53 public hosted zone (if you already registered via Route53, this
+    // will automatically be linked to the domain)
+    const hostedZone = new route53.PublicHostedZone(this, "HostedZone", {
+      zoneName: domainName,
     });
 
+    // ACM certificate for CloudFront – must be in us-east-1 (CertManager now recommends using acm.Certificate)
+    const clientCert = new acm.Certificate(this, "SiteCert", {
+      domainName,
+      validation: acm.CertificateValidation.fromDns(hostedZone),
+    });
+
+    const clientDomainName = domainName; // apex serves SPA
+
+    const clientDistribution = new cloudfront.Distribution(
+      this,
+      "ClientDistribution",
+      {
+        certificate: clientCert,
+        domainNames: [clientDomainName],
+        defaultRootObject: "index.html",
+        defaultBehavior: {
+          origin: new origins.S3Origin(clientBucket, {
+            originAccessIdentity: clientOai,
+          }),
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        },
+      }
+    );
+
     // Deploy the built SPA assets from client/dist to the bucket and invalidate CloudFront cache
-    new s3_deployment.BucketDeployment(this, 'ClientBucketDeployment', {
+    new s3_deployment.BucketDeployment(this, "ClientBucketDeployment", {
       destinationBucket: clientBucket,
       distribution: clientDistribution,
-      distributionPaths: ['/*'],
+      distributionPaths: ["/*"],
       sources: [
         // Assumes `client/dist` is built BEFORE running `cdk deploy`
-        s3_deployment.Source.asset(path.join(REPO_ROOT, 'client', 'dist')),
+        s3_deployment.Source.asset(path.join(REPO_ROOT, "client", "dist")),
       ],
     });
 
     // 4. Eureka Service Registry
     createInternalService(
       "Eureka",
-      ecs.ContainerImage.fromAsset(
-        path.join(REPO_ROOT, "server", "eureka"),
-        {
-          platform: ecr_assets.Platform.LINUX_AMD64,
-        }
-      ),
+      ecs.ContainerImage.fromAsset(path.join(REPO_ROOT, "server", "eureka"), {
+        platform: ecr_assets.Platform.LINUX_AMD64,
+      }),
       8761,
       {
         SPRING_APPLICATION_NAME: "eureka",
@@ -293,8 +324,8 @@ export class CdkStack extends cdk.Stack {
         // RDS configuration
         DB_HOST: database.instanceEndpoint.hostname,
         DB_PORT: database.instanceEndpoint.port.toString(),
-        DB_NAME: 'teamsgima',
-        DB_SECRET_ARN: database.secret?.secretArn ?? '',
+        DB_NAME: "teamsgima",
+        DB_SECRET_ARN: database.secret?.secretArn ?? "",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         // Eureka configuration
         EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
@@ -354,8 +385,8 @@ export class CdkStack extends cdk.Stack {
         // RDS configuration
         DB_HOST: database.instanceEndpoint.hostname,
         DB_PORT: database.instanceEndpoint.port.toString(),
-        DB_NAME: 'teamsgima',
-        DB_SECRET_ARN: database.secret?.secretArn ?? '',
+        DB_NAME: "teamsgima",
+        DB_SECRET_ARN: database.secret?.secretArn ?? "",
         // Eureka configuration
         EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
       }
@@ -379,25 +410,44 @@ export class CdkStack extends cdk.Stack {
     );
 
     // Output the database endpoint and S3 bucket for reference
-    new cdk.CfnOutput(this, 'DatabaseEndpoint', {
+    new cdk.CfnOutput(this, "DatabaseEndpoint", {
       value: database.instanceEndpoint.hostname,
-      description: 'RDS Database endpoint',
+      description: "RDS Database endpoint",
     });
 
-    new cdk.CfnOutput(this, 'S3BucketName', {
+    new cdk.CfnOutput(this, "S3BucketName", {
       value: documentBucket.bucketName,
-      description: 'S3 bucket for document storage',
+      description: "S3 bucket for document storage",
     });
 
-    new cdk.CfnOutput(this, 'ApiGatewayUrl', {
+    new cdk.CfnOutput(this, "ApiGatewayUrl", {
       value: apiGatewayService.loadBalancer.loadBalancerDnsName,
-      description: 'API Gateway Load Balancer URL',
+      description: "API Gateway Load Balancer URL",
     });
 
     // NEW: Output the CloudFront distribution domain for the client SPA
-    new cdk.CfnOutput(this, 'ClientUrl', {
-      value: `https://${clientDistribution.domainName}`,
-      description: 'URL of the Client SPA served via CloudFront',
+    new cdk.CfnOutput(this, "ClientUrl", {
+      value: `https://${clientDomainName}`,
+      description: "URL of the Client SPA served via CloudFront",
+    });
+
+    // ----- Route53 records -----
+    // Alias apex to CloudFront
+    new route53.ARecord(this, "ApexAlias", {
+      zone: hostedZone,
+      recordName: "",
+      target: route53.RecordTarget.fromAlias(
+        new r53_targets.CloudFrontTarget(clientDistribution)
+      ),
+    });
+
+    // Alias api subdomain to ALB of API Gateway
+    new route53.ARecord(this, "ApiAlias", {
+      zone: hostedZone,
+      recordName: "api",
+      target: route53.RecordTarget.fromAlias(
+        new r53_targets.LoadBalancerTarget(apiGatewayService.loadBalancer)
+      ),
     });
 
     // example resource

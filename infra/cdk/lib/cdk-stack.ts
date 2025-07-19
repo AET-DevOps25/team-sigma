@@ -8,6 +8,10 @@ import * as path from "path";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+// NEW IMPORTS FOR CLIENT DEPLOYMENT
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as s3_deployment from "aws-cdk-lib/aws-s3-deployment";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 // Path to repository root (three levels up from this file: lib -> cdk -> infra -> team-sigma root)
@@ -219,38 +223,36 @@ export class CdkStack extends cdk.Stack {
       cloudMapNamespace: cluster.defaultCloudMapNamespace,
     });
 
-    // // 5. Client (React SPA served via nginx, public)
-    // const clientImage = ecs.ContainerImage.fromAsset(
-    //   path.join(REPO_ROOT, "client"),
-    //   {
-    //     platform: ecr_assets.Platform.LINUX_AMD64,
-    //   }
-    // );
+    // 3b. Client (React SPA) hosted on S3 + CloudFront
+    const clientBucket = new s3.Bucket(this, 'ClientBucket', {
+      bucketName: `team-sigma-client-${this.account}-${this.region}`,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test convenience – change for production
+      autoDeleteObjects: true, // for dev/test convenience – change for production
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
 
-    // const clientService =
-    //   new ecs_patterns.ApplicationLoadBalancedFargateService(
-    //     this,
-    //     "ClientService",
-    //     {
-    //       cluster,
-    //       desiredCount: 1,
-    //       publicLoadBalancer: true,
-    //       securityGroups: [internalServicesSecurityGroup],
-    //       capacityProviderStrategies: [
-    //         { capacityProvider: "FARGATE_SPOT", weight: 1 },
-    //       ],
-    //       minHealthyPercent: 0,
-    //       memoryLimitMiB: 512,
-    //       cpu: 256,
-    //       taskImageOptions: {
-    //         image: clientImage,
-    //         containerPort: 80,
-    //         environment: {
-    //           API_GATEWAY_URL: `http://${apiGatewayService.loadBalancer.loadBalancerDnsName}`,
-    //         },
-    //       },
-    //     }
-    //   );
+    // Origin Access Identity so that only CloudFront can read from the bucket
+    const clientOai = new cloudfront.OriginAccessIdentity(this, 'ClientOAI');
+    clientBucket.grantRead(clientOai);
+
+    const clientDistribution = new cloudfront.Distribution(this, 'ClientDistribution', {
+      defaultRootObject: 'index.html',
+      defaultBehavior: {
+        origin: new origins.S3Origin(clientBucket, { originAccessIdentity: clientOai }),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+    });
+
+    // Deploy the built SPA assets from client/dist to the bucket and invalidate CloudFront cache
+    new s3_deployment.BucketDeployment(this, 'ClientBucketDeployment', {
+      destinationBucket: clientBucket,
+      distribution: clientDistribution,
+      distributionPaths: ['/*'],
+      sources: [
+        // Assumes `client/dist` is built BEFORE running `cdk deploy`
+        s3_deployment.Source.asset(path.join(REPO_ROOT, 'client', 'dist')),
+      ],
+    });
 
     // 4. Eureka Service Registry
     createInternalService(
@@ -392,10 +394,11 @@ export class CdkStack extends cdk.Stack {
       description: 'API Gateway Load Balancer URL',
     });
 
-    // new cdk.CfnOutput(this, 'ClientUrl', {
-    //   value: clientService.loadBalancer.loadBalancerDnsName,
-    //   description: 'Client Load Balancer URL',
-    // });
+    // NEW: Output the CloudFront distribution domain for the client SPA
+    new cdk.CfnOutput(this, 'ClientUrl', {
+      value: `https://${clientDistribution.domainName}`,
+      description: 'URL of the Client SPA served via CloudFront',
+    });
 
     // example resource
     // const queue = new sqs.Queue(this, 'CdkQueue', {

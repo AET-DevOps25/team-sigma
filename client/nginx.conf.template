@@ -3,16 +3,23 @@ events {
 }
 
 http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
     resolver ${DNS_SERVER} valid=30s ipv6=off;
 
     server {
         listen 80;
-        server_name localhost;
         
         location / {
             root /usr/share/nginx/html;
             index index.html index.htm;
             try_files $uri $uri/ /index.html;
+            
+            # Ensure JavaScript modules are served with correct MIME type
+            location ~* \.(js|mjs)$ {
+                add_header Content-Type application/javascript;
+            }
         }
         
         # Proxy api requests to our api-gateway

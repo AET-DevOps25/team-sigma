@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   useLecturesByUser,
   useCreateLecture,
@@ -13,6 +14,7 @@ import { LectureList } from "./LectureList";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { ConfirmDialog } from "./ui/confirm-dialog";
 
 interface LectureManagerProps {}
 
@@ -21,6 +23,8 @@ export function LectureManager({}: LectureManagerProps) {
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
   const [editName, setEditName] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [lectureToDelete, setLectureToDelete] = useState<{ id: number; name: string } | null>(null);
 
   const { isSignedIn, user, isLoaded } = useUser();
   const navigate = useNavigate();
@@ -51,7 +55,7 @@ export function LectureManager({}: LectureManagerProps) {
     e.preventDefault();
 
     if (!lectureName.trim()) {
-      alert("Please provide a lecture name");
+      toast.error("Please provide a lecture name");
       return;
     }
 
@@ -66,10 +70,10 @@ export function LectureManager({}: LectureManagerProps) {
       setLectureName("");
       setActiveTab("list");
 
-      alert("Lecture created successfully!");
+      toast.success("Lecture created successfully!");
     } catch (error) {
       console.error("Create failed:", error);
-      alert("Create failed. Please try again.");
+      toast.error("Create failed. Please try again.");
     }
   };
 
@@ -92,23 +96,29 @@ export function LectureManager({}: LectureManagerProps) {
       setEditingLecture(null);
       setEditName("");
 
-      alert("Lecture updated successfully!");
+      toast.success("Lecture updated successfully!");
     } catch (error) {
       console.error("Update failed:", error);
-      alert("Update failed. Please try again.");
+      toast.error("Update failed. Please try again.");
     }
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    setLectureToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!lectureToDelete) return;
 
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(lectureToDelete.id);
 
-      alert("Lecture deleted successfully!");
+      toast.success("Lecture deleted successfully!");
+      setLectureToDelete(null);
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("Delete failed. Please try again.");
+      toast.error("Delete failed. Please try again.");
     }
   };
 
@@ -243,6 +253,17 @@ export function LectureManager({}: LectureManagerProps) {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Lecture"
+        description={`Are you sure you want to delete "${lectureToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        destructive={true}
+      />
     </div>
   );
 }

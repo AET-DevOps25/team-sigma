@@ -1,9 +1,9 @@
 import openai
 import logging
 import time
-from typing import List
+from typing import List, Optional
 from fastapi import HTTPException
-from models import DocumentChunkModel
+from models import DocumentChunkModel, ConversationMessage
 from prometheus_client import Counter, Histogram, Gauge
 
 
@@ -23,18 +23,23 @@ ai_tokens_used = Counter(
 )
 
 
-PROMPT = """You are a helpful AI assistant that answers questions based strictly on the provided document content. 
+PROMPT = """You are a helpful AI assistant that answers questions based on the provided document content and conversation history.
 
 IMPORTANT INSTRUCTIONS:
-1. Only answer questions using information from the provided documents
-2. If the question cannot be answered from the documents, clearly state that you don't have that information
-3. Do not make up or infer information not explicitly stated in the documents
+1. Use information from both the provided documents and conversation history to answer questions
+2. If the question cannot be answered from either the documents or conversation history, clearly state that you don't have that information
+3. Do not make up or infer information not explicitly stated in the documents or conversation
 4. Be concise and accurate
+5. Use the conversation history to understand context
+6. If no document content is available but conversation history exists, answer based on the conversation history
 
 DOCUMENT CONTENT:
 {context}
 
-QUESTION: {query}
+CONVERSATION HISTORY:
+{conversation_history}
+
+CURRENT QUESTION: {query}
 
 ANSWER:"""
 
@@ -51,18 +56,35 @@ class ChatService:
                 logger.error(f"Failed to initialize OpenAI client: {str(e)}")
                 self.client = None
     
-    async def generate_rag_response(self, query: str, chunks: List[DocumentChunkModel]) -> str:
+    async def generate_rag_response(self, query: str, chunks: List[DocumentChunkModel], conversation_history: Optional[List[ConversationMessage]] = None) -> str:
         if not self.client:
             ai_requests_total.labels(model="gpt-3.5-turbo", status="failed").inc()
             raise HTTPException(status_code=500, detail="Service temporarily unavailable. Please try again later.")
         
-        if not chunks:
-            ai_requests_total.labels(model="gpt-3.5-turbo", status="no_chunks").inc()
+        # Check if we have either chunks or conversation history
+        if not chunks and not conversation_history:
+            ai_requests_total.labels(model="gpt-3.5-turbo", status="no_content").inc()
             return "I couldn't find any relevant information in the uploaded documents to answer your question. Please make sure your question is related to the content of the documents."
         
+        # Build document context
         context = ""
-        for i, chunk in enumerate(chunks):
-            context += f"{chunk.text}\n\n"
+        if chunks:
+            for i, chunk in enumerate(chunks):
+                context += f"{chunk.text}\n\n"
+        else:
+            context = "No relevant document content found for this specific question."
+
+        # Format conversation history
+        conversation_context = ""
+        if conversation_history:
+            # Get the last 10 messages to avoid token limit issues
+            recent_history = conversation_history[-10:] if len(conversation_history) > 10 else conversation_history
+            for msg in recent_history:
+                role = "Human" if msg.messageType == "HUMAN" else "Assistant"
+                conversation_context += f"{role}: {msg.content}\n"
+        
+        if not conversation_context:
+            conversation_context = "No previous conversation."
 
         model_name = "gpt-3.5-turbo"
         
@@ -70,8 +92,8 @@ class ChatService:
             response = self.client.chat.completions.create(
                 model=model_name,
                 messages=[
-                    {"role": "system", "content": "You are a helpful AI assistant that answers questions based strictly on provided document content. Never make up information not found in the documents."},
-                    {"role": "user", "content": PROMPT.format(context=context, query=query)}
+                    {"role": "system", "content": "You are a helpful AI assistant that answers questions based on provided document content and conversation history. Use both sources to provide accurate answers. Never make up information not found in the sources."},
+                    {"role": "user", "content": PROMPT.format(context=context, conversation_history=conversation_context, query=query)}
                 ],
                 max_tokens=500,
                 temperature=0.1
@@ -86,7 +108,7 @@ class ChatService:
             # Track successful request
             ai_requests_total.labels(model=model_name, status="success").inc()
             
-            logger.info(f"AI request completed - Model: {model_name}, Chunks: {len(chunks)}")
+            logger.info(f"AI request completed - Model: {model_name}, Chunks: {len(chunks)}, History messages: {len(conversation_history) if conversation_history else 0}")
             
             return response.choices[0].message.content.strip()
             

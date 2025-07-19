@@ -56,7 +56,7 @@ class DocumentServiceClient:
             )
 
             response = await self.http_client.get(
-                f"http://document-service/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
+                f"http://{self.service_name}/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
             )
 
             if response:
@@ -107,7 +107,7 @@ class DocumentServiceClient:
             request_body = {"messageType": message_type, "content": content}
 
             response = await self.http_client.post(
-                f"http://document-service/api/documents/{document_id}/conversation",
+                f"http://{self.service_name}/api/documents/{document_id}/conversation",
                 json=request_body,
             )
 

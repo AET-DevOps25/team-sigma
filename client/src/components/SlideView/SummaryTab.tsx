@@ -1,23 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { BookOpen, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import type { Document } from "../../hooks/useApi";
 import { useGenerateSummary, useSummaryHealth } from "../../hooks/useApi";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface SummaryTabProps {
   document: Document;
 }
 
+const getSummaryFromStorage = (documentId: number): string | null => {
+  try {
+    const key = `summary_${documentId}`;
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.error('Failed to read summary from local storage:', error);
+    return null;
+  }
+};
+
+const saveSummaryToStorage = (documentId: number, summary: string): void => {
+  try {
+    const key = `summary_${documentId}`;
+    localStorage.setItem(key, summary);
+  } catch (error) {
+    console.error('Failed to save summary to local storage:', error);
+  }
+};
+
 const SummaryTab: React.FC<SummaryTabProps> = ({ document }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const queryClient = useQueryClient();
   const generateSummaryMutation = useGenerateSummary();
   const { data: summaryHealth, isLoading: isHealthLoading, error: healthError } = useSummaryHealth();
 
   const isSummaryServiceAvailable = summaryHealth?.status === 'healthy' && !healthError;
   
-  const cachedSummary = queryClient.getQueryData<string>(['summary', document.id]);
+  const cachedSummary = document.id ? getSummaryFromStorage(document.id) : null;
   const [summary, setSummary] = useState<string | null>(cachedSummary || null);
 
   const handleGenerateSummary = async () => {
@@ -29,12 +47,11 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ document }) => {
         document_id: document.id.toString()
       });
       
-      queryClient.setQueryData(['summary', document.id], result.summary);
+      saveSummaryToStorage(document.id, result.summary);
       setSummary(result.summary);
     } catch (error) {
       console.error('Failed to generate summary:', error);
-      const errorMessage = 'Failed to generate summary. Please try again.';
-      setSummary(errorMessage);
+      toast.error('Failed to generate summary. Please try again.');
     } finally {
       setIsGenerating(false);
     }

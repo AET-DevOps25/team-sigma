@@ -2,25 +2,25 @@ host: nemo.student.k8s.aet.cit.tum.de
 
 services:
   - name: client
+    servicePort: 80
     containerPort: 80
-    hostPort: 80
     path: /
     image: ghcr.io/aet-devops25/team-sigma/client:latest
   - name: api-gateway
-    containerPort: 8080
-    hostPort: 80
+    servicePort: 80
+    containerPort: 80
     path: /api
     image: ghcr.io/aet-devops25/team-sigma/api-gateway:latest
     env:
       - name: SPRING_APPLICATION_NAME
         value: api-gateway
       - name: SERVER_PORT
-        value: "8080"
+        value: "80"
       - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: http://eureka:8761/eureka/
   - name: eureka
+    servicePort: 8761
     containerPort: 8761
-    hostPort: 8761
     image: ghcr.io/aet-devops25/team-sigma/eureka:latest
     env:
       - name: SPRING_APPLICATION_NAME
@@ -32,14 +32,14 @@ services:
       - name: EUREKA_CLIENT_FETCH_REGISTRY
         value: "false"
   - name: document-service
-    containerPort: 8080
-    hostPort: 80
+    servicePort: 80
+    containerPort: 80
     image: ghcr.io/aet-devops25/team-sigma/document-service:latest
     env:
       - name: SPRING_APPLICATION_NAME
         value: document-service
       - name: SERVER_PORT
-        value: "8080"
+        value: "80"
       - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: http://eureka:8761/eureka/
       - name: WEAVIATE_URL
@@ -66,16 +66,10 @@ services:
             name: openai-secret
             key: api-key
   - name: chat-service
-    containerPort: 8080
-    hostPort: 80
+    servicePort: 80
+    containerPort: 80
     image: ghcr.io/aet-devops25/team-sigma/chat-service:latest
     env:
-      - name: SPRING_APPLICATION_NAME
-        value: chat-service
-      - name: SERVER_PORT
-        value: "8080"
-      - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-        value: http://eureka:8761/eureka/
       - name: ENVIRONMENT
         value: docker
       - name: OPENAI_API_KEY
@@ -84,16 +78,10 @@ services:
             name: openai-secret
             key: api-key
   - name: summary-service
-    containerPort: 8080
-    hostPort: 80
+    servicePort: 80
+    containerPort: 80
     image: ghcr.io/aet-devops25/team-sigma/summary-service:latest
     env:
-      - name: SPRING_APPLICATION_NAME
-        value: summary-service
-      - name: SERVER_PORT
-        value: "8080"
-      - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-        value: http://eureka:8761/eureka/
       - name: ENVIRONMENT
         value: docker
       - name: OPENAI_API_KEY
@@ -102,14 +90,14 @@ services:
             name: openai-secret
             key: api-key
   - name: lecture-service
-    containerPort: 8080
-    hostPort: 80
+    servicePort: 80
+    containerPort: 80
     image: ghcr.io/aet-devops25/team-sigma/lecture-service:latest
     env:
       - name: SPRING_APPLICATION_NAME
         value: lecture-service
       - name: SERVER_PORT
-        value: "8080"
+        value: "80"
       - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: http://eureka:8761/eureka/
       - name: POSTGRES_HOST
@@ -123,8 +111,8 @@ services:
       - name: POSTGRES_PASSWORD
         value: postgres
   - name: weaviate
+    servicePort: 8080
     containerPort: 8080
-    hostPort: 8080
     image: cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730
     env:
       - name: QUERY_DEFAULTS_LIMIT
@@ -150,9 +138,13 @@ services:
       - name: CLUSTER_HOSTNAME
         value: node1
   - name: minio
+    servicePort: 9000
     containerPort: 9000
-    hostPort: 80
     image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    command:
+      - server
+    args:
+      - /data
     env:
       - name: MINIO_ROOT_USER
         value: minioadmin
@@ -161,8 +153,8 @@ services:
       - name: MINIO_PROMETHEUS_AUTH_TYPE
         value: public
   - name: postgres
+    servicePort: 5432
     containerPort: 5432
-    hostPort: 5432
     image: postgres:15-alpine
     env:
       - name: POSTGRES_USER
@@ -172,12 +164,12 @@ services:
       - name: POSTGRES_DB
         value: postgres
   - name: prometheus
+    servicePort: 9090
     containerPort: 9090
-    hostPort: 9090
     image: prom/prometheus:latest
   - name: grafana
+    servicePort: 3000
     containerPort: 3000
-    hostPort: 80
     image: grafana/grafana:latest
     env:
       - name: GF_SECURITY_ADMIN_PASSWORD

@@ -8,7 +8,8 @@ spec:
   selector:
     app: {{ .name }}
   ports:
-  - port: {{ .containerPort }}
-    targetPort: {{ .hostPort }}
+    - name: http
+      port: {{ .servicePort }}
+      targetPort: {{ .containerPort }}
   type: ClusterIP
 {{- end }} 

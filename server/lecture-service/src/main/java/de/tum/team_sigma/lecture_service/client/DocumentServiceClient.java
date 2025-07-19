@@ -5,9 +5,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "document-service")
+@FeignClient(name = "document-service", url = "http://document-service:80")
 public interface DocumentServiceClient {
-    
+
     @DeleteMapping("/api/documents/lecture/{lectureId}")
     ResponseEntity<Void> deleteDocumentsByLecture(@PathVariable("lectureId") String lectureId);
-} 
+}

@@ -15,28 +15,6 @@ services:
         servicePort: 80
     path: /api
     image: ghcr.io/aet-devops25/team-sigma/api-gateway:latest
-    env:
-      - name: SPRING_APPLICATION_NAME
-        value: api-gateway
-      - name: SERVER_PORT
-        value: "80"
-      - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-        value: http://eureka:8761/eureka/
-  - name: eureka
-    ports:
-      - name: http
-        containerPort: 8761
-        servicePort: 8761
-    image: ghcr.io/aet-devops25/team-sigma/eureka:latest
-    env:
-      - name: SPRING_APPLICATION_NAME
-        value: eureka
-      - name: SERVER_PORT
-        value: "8761"
-      - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
-        value: "false"
-      - name: EUREKA_CLIENT_FETCH_REGISTRY
-        value: "false"
   - name: document-service
     ports:
       - name: http
@@ -48,8 +26,10 @@ services:
         value: document-service
       - name: SERVER_PORT
         value: "80"
-      - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-        value: http://eureka:8761/eureka/
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
       - name: WEAVIATE_URL
         value: weaviate:8080
       - name: MINIO_URL
@@ -80,8 +60,14 @@ services:
         servicePort: 80
     image: ghcr.io/aet-devops25/team-sigma/chat-service:latest
     env:
-      - name: ENVIRONMENT
-        value: docker
+      - name: SPRING_APPLICATION_NAME
+        value: chat-service
+      - name: SERVER_PORT
+        value: "80"
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
       - name: OPENAI_API_KEY
         valueFrom:
           secretKeyRef:
@@ -94,8 +80,14 @@ services:
         servicePort: 80
     image: ghcr.io/aet-devops25/team-sigma/summary-service:latest
     env:
-      - name: ENVIRONMENT
-        value: docker
+      - name: SPRING_APPLICATION_NAME
+        value: summary-service
+      - name: SERVER_PORT
+        value: "80"
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
       - name: OPENAI_API_KEY
         valueFrom:
           secretKeyRef:
@@ -112,8 +104,10 @@ services:
         value: lecture-service
       - name: SERVER_PORT
         value: "80"
-      - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-        value: http://eureka:8761/eureka/
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
       - name: POSTGRES_HOST
         value: postgres
       - name: POSTGRES_PORT

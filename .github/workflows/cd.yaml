@@ -19,7 +19,6 @@ jobs:
         service:
           [
             client,
-            eureka,
             api-gateway,
             document-service,
             quiz-service,
@@ -31,9 +30,6 @@ jobs:
           - service: client
             context: ./client
             dockerfile: ./client/Dockerfile
-          - service: eureka
-            context: ./server/eureka
-            dockerfile: ./server/eureka/Dockerfile
           - service: api-gateway
             context: ./server/api-gateway
             dockerfile: ./server/api-gateway/Dockerfile

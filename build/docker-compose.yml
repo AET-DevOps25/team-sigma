@@ -1,30 +1,26 @@
 services:
-  eureka:
-    build:
-      context: ../server/eureka
-    ports:
-      - "8761:8761"
-    environment:
-      - SPRING_APPLICATION_NAME=eureka
-      - SERVER_PORT=8761
-      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
-      - EUREKA_CLIENT_FETCH_REGISTRY=false
-    networks:
-      - spring-cloud-network
-
   api-gateway:
     build:
       context: ../server/api-gateway
+      dockerfile: Dockerfile
     ports:
-      - "8080:8080"
-    environment:
-      - SPRING_APPLICATION_NAME=api-gateway
-      - SERVER_PORT=8080
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
-    depends_on:
-      - eureka
+      - "8080:80"
     networks:
       - client-network
+      - spring-cloud-network
+
+  chat-service:
+    build:
+      context: ../server/chat-service
+    environment:
+      - SPRING_APPLICATION_NAME=chat-service
+      - SERVER_PORT=80
+      - ENVIRONMENT=docker
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - api-gateway
+      - document-service
+    networks:
       - spring-cloud-network
 
   document-service:
@@ -32,8 +28,7 @@ services:
       context: ../server/document-service
     environment:
       - SPRING_APPLICATION_NAME=document-service
-      - SERVER_PORT=8080
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SERVER_PORT=80
       - WEAVIATE_URL=weaviate:8080
       - MINIO_URL=http://minio:9000
       - MINIO_ACCESS_KEY=minioadmin
@@ -45,44 +40,10 @@ services:
       - POSTGRES_PASSWORD=postgres
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
-      - eureka
+      - api-gateway
       - weaviate
       - minio
       - postgres
-    networks:
-      - spring-cloud-network
-
-  chat-service:
-    build:
-      context: ../server/chat-service
-    ports:
-      - "8082:8082"
-    environment:
-      - SPRING_APPLICATION_NAME=chat-service
-      - SERVER_PORT=8082
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
-      - ENVIRONMENT=docker
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    depends_on:
-      - eureka
-      - document-service
-    networks:
-      - spring-cloud-network
-
-  summary-service:
-    build:
-      context: ../server/summary-service
-    ports:
-      - "8084:8084"
-    environment:
-      - SPRING_APPLICATION_NAME=summary-service
-      - SERVER_PORT=8084
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
-      - ENVIRONMENT=docker
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    depends_on:
-      - eureka
-      - document-service
     networks:
       - spring-cloud-network
 
@@ -91,16 +52,41 @@ services:
       context: ../server/lecture-service
     environment:
       - SPRING_APPLICATION_NAME=lecture-service
-      - SERVER_PORT=8083
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SERVER_PORT=80
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=lecture_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     depends_on:
-      - eureka
+      - api-gateway
       - postgres
+    networks:
+      - spring-cloud-network
+
+  quiz-service:
+    build:
+      context: ../server/quiz-service
+    environment:
+      - SPRING_APPLICATION_NAME=quiz-service
+      - SERVER_PORT=80
+    depends_on:
+      - api-gateway
+      - postgres
+    networks:
+      - spring-cloud-network
+
+  summary-service:
+    build:
+      context: ../server/summary-service
+    environment:
+      - SPRING_APPLICATION_NAME=summary-service
+      - SERVER_PORT=80
+      - ENVIRONMENT=docker
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - api-gateway
+      - document-service
     networks:
       - spring-cloud-network
 
@@ -170,11 +156,11 @@ services:
       - ./config/prometheus/exception_rules.yml:/etc/prometheus/exception_rules.yml
       - ./data/prometheus:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=24h'
-      - '--web.enable-lifecycle'
-      - '--storage.tsdb.retention.size=1GB'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=24h"
+      - "--web.enable-lifecycle"
+      - "--storage.tsdb.retention.size=1GB"
     networks:
       - spring-cloud-network
 

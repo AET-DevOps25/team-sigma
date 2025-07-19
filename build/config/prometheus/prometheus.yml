@@ -7,68 +7,52 @@ rule_files:
 
 scrape_configs:
   # Prometheus itself
-  - job_name: 'prometheus'
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['localhost:9090']
-
-  # API Gateway
-  - job_name: 'api-gateway'
-    static_configs:
-      - targets: ['api-gateway:8080']
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 15s
-    scrape_timeout: 10s
+      - targets: ["localhost:9090"]
 
   # Document Service
-  - job_name: 'document-service'
+  - job_name: "document-service"
     static_configs:
-      - targets: ['document-service:8080']
-    metrics_path: '/actuator/prometheus'
+      - targets: ["document-service:8080"]
+    metrics_path: "/actuator/prometheus"
     scrape_interval: 15s
     scrape_timeout: 10s
 
   # Chat Service (Python FastAPI)
-  - job_name: 'chat-service'
+  - job_name: "chat-service"
     static_configs:
-      - targets: ['chat-service:8082']
-    metrics_path: '/metrics'
+      - targets: ["chat-service:8082"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
     scrape_timeout: 10s
 
   # Summary Service (Python FastAPI)
-  - job_name: 'summary-service'
+  - job_name: "summary-service"
     static_configs:
-      - targets: ['summary-service:8084']
-    metrics_path: '/metrics'
+      - targets: ["summary-service:8084"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
     scrape_timeout: 10s
 
   # Lecture Service
-  - job_name: 'lecture-service'
+  - job_name: "lecture-service"
     static_configs:
-      - targets: ['lecture-service:8083']
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 15s
-    scrape_timeout: 10s
-
-  # Eureka Service Registry
-  - job_name: 'eureka'
-    static_configs:
-      - targets: ['eureka:8761']
-    metrics_path: '/actuator/prometheus'
+      - targets: ["lecture-service:8083"]
+    metrics_path: "/actuator/prometheus"
     scrape_interval: 15s
     scrape_timeout: 10s
 
   # PostgreSQL Exporter
-  - job_name: 'postgres'
+  - job_name: "postgres"
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ["postgres-exporter:9187"]
 
   # MinIO (metrics enabled with public access)
-  - job_name: 'minio'
+  - job_name: "minio"
     static_configs:
-      - targets: ['minio:9000']
-    metrics_path: '/minio/v2/metrics/cluster'
+      - targets: ["minio:9000"]
+    metrics_path: "/minio/v2/metrics/cluster"
     scrape_interval: 15s
     scrape_timeout: 10s
 
@@ -77,4 +61,4 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # - alertmanager:9093 
+          # - alertmanager:9093

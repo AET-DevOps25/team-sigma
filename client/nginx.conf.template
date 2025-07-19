@@ -1,0 +1,25 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    resolver ${DNS_SERVER} valid=30s ipv6=off;
+
+    server {
+        listen 80;
+        server_name localhost;
+        
+        location / {
+            root /usr/share/nginx/html;
+            index index.html index.htm;
+            try_files $uri $uri/ /index.html;
+        }
+        
+        # Proxy api requests to our api-gateway
+        location /api/ {
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_pass http://api-gateway/api/;
+        }
+    }
+}

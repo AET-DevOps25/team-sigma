@@ -78,7 +78,12 @@ async def chat(request: ChatRequest):
     try:
         logger.info(f"Processing chat request: '{request.message}'")
         
+        conversation_history = None
         if request.document_id:
+            current_document = await document_client.get_document_by_id(request.document_id)
+            if current_document and current_document.conversation:
+                conversation_history = current_document.conversation
+            
             try:
                 await document_client.add_message_to_conversation(
                     request.document_id, 
@@ -91,14 +96,14 @@ async def chat(request: ChatRequest):
         
         chunks = await document_client.search_similar_chunks(request.message, limit=5)
         
-        if not chunks:
+        if not chunks and not conversation_history:
             return ChatResponse(
                 response="I couldn't find any relevant information in the uploaded documents to answer your question. Please make sure your question is related to the content of the documents.",
-                document_info=None,
+                document=None,
                 chunk_count=0
             )
         
-        ai_response = await chat_service.generate_rag_response(request.message, chunks)
+        ai_response = await chat_service.generate_rag_response(request.message, chunks, conversation_history)
         
         if request.document_id:
             try:
@@ -115,7 +120,7 @@ async def chat(request: ChatRequest):
         if request.document_id:
             updated_document = await document_client.get_document_by_id(request.document_id)
         
-        logger.info(f"Generated response using {len(chunks)} chunks")
+        logger.info(f"Generated response using {len(chunks)} chunks and conversation history: {conversation_history is not None}")
         
         return ChatResponse(
             response=ai_response,

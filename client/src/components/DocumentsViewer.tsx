@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   useDocuments,
   useUploadDocument,
   useDeleteDocument,
   useDocumentDownload,
+  useUpdateDocument,
   type Lecture,
   type DocumentUploadRequest,
   type Document,
 } from '../hooks/useApi';
-import DocumentCard from './DocumentCard';
+
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { ConfirmDialog } from './ui/confirm-dialog';
+import { DocumentListCard } from './DocumentListCard';
 
 interface DocumentsViewerProps {
   selectedLecture: Lecture;
@@ -24,9 +28,17 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadName, setUploadName] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments(selectedLecture.id.toString());
   const uploadMutation = useUploadDocument();
+  const updateMutation = useUpdateDocument();
   const deleteMutation = useDeleteDocument();
   const { downloadDocument, isDownloading } = useDocumentDownload();
 
@@ -34,13 +46,25 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
     e.preventDefault();
     
     if (!uploadFile || !uploadName.trim()) {
-      alert('Please select a file and provide a name');
+      toast.error('Please select a file and provide a name');
+      return;
+    }
+
+    const trimmedName = uploadName.trim();
+    if (trimmedName.length > 100) {
+      toast.error('Document name is too long. Please keep it under 100 characters.');
+      return;
+    }
+
+    const trimmedDescription = uploadDescription.trim();
+    if (trimmedDescription.length > 255) {
+      toast.error('Description is too long. Please keep it under 255 characters.');
       return;
     }
 
     const metadata: DocumentUploadRequest = {
       name: uploadName.trim(),
-      description: uploadDescription.trim() || undefined,
+      description: trimmedDescription || undefined,
       lectureId: selectedLecture.id.toString(),
     };
 
@@ -52,22 +76,80 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       setUploadDescription('');
       setShowUploadForm(false);
       
-      alert('Document uploaded successfully!');
+      toast.success('Document uploaded successfully!');
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+      toast.error('Upload failed. Please try again.');
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!editingDocument || !editName.trim()) {
+      return;
+    }
+
+    const trimmedName = editName.trim();
+    if (trimmedName.length > 100) {
+      toast.error('Document name is too long. Please keep it under 100 characters.');
+      return;
+    }
+
+    const trimmedDescription = editDescription.trim();
+    if (trimmedDescription.length > 255) {
+      toast.error('Description is too long. Please keep it under 255 characters.');
+      return;
+    }
+
+    const metadata: DocumentUploadRequest = {
+      name: editName.trim(),
+      description: trimmedDescription || undefined,
+      lectureId: selectedLecture.id.toString(),
+    };
 
     try {
-      await deleteMutation.mutateAsync(id);
-      alert('Document deleted successfully!');
+      await updateMutation.mutateAsync({ id: editingDocument.id, metadata });
+
+      setEditingDocument(null);
+      setEditName('');
+      setEditDescription('');
+
+      toast.success('Document updated successfully!');
+    } catch (error) {
+      console.error('Update failed:', error);
+      toast.error('Update failed. Please try again.');
+    }
+  };
+
+  const startEdit = (doc: Document) => {
+    setEditingDocument(doc);
+    setEditName(doc.name);
+    setEditDescription(doc.description || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingDocument(null);
+    setEditName('');
+    setEditDescription('');
+  };
+
+  const handleDelete = (id: number, name: string) => {
+    setDocumentToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!documentToDelete) return;
+
+    try {
+      await deleteMutation.mutateAsync(documentToDelete.id);
+      toast.success('Document deleted successfully!');
+      setDocumentToDelete(null);
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Delete failed. Please try again.');
+      toast.error('Delete failed. Please try again.');
     }
   };
 
@@ -76,7 +158,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       await downloadDocument(doc.id, doc.originalFilename);
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Download failed. Please try again.');
+      toast.error('Download failed. Please try again.');
     }
   };
 
@@ -128,7 +210,17 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                     </Label>
                     <Input
                       type="file"
-                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setUploadFile(file);
+                        if (file) {
+                          const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
+                          setUploadName(nameWithoutExtension);
+                          setTimeout(() => {
+                            nameInputRef.current?.select();
+                          }, 0);
+                        }
+                      }}
                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       required
                     />
@@ -144,13 +236,33 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                       Document Name *
                     </Label>
                     <Input
+                      ref={nameInputRef}
                       type="text"
                       value={uploadName}
                       onChange={(e) => setUploadName(e.target.value)}
                       placeholder="Enter a descriptive name..."
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        uploadName.length > 100 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300'
+                      }`}
                       required
+                      maxLength={120}
                     />
+                    <div className="flex justify-between mt-1">
+                      <p className={`text-xs ${
+                        uploadName.length > 100 
+                          ? 'text-red-500' 
+                          : uploadName.length > 90 
+                            ? 'text-yellow-600' 
+                            : 'text-gray-500'
+                      }`}>
+                        {uploadName.length}/100 characters
+                      </p>
+                      {uploadName.length > 100 && (
+                        <p className="text-xs text-red-500">Too long!</p>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -162,13 +274,32 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                       onChange={(e) => setUploadDescription(e.target.value)}
                       placeholder="Add a description to make the document easier to find..."
                       rows={3}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        uploadDescription.length > 255 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300'
+                      }`}
+                      maxLength={300}
                     />
+                    <div className="flex justify-between mt-1">
+                      <p className={`text-xs ${
+                        uploadDescription.length > 255 
+                          ? 'text-red-500' 
+                          : uploadDescription.length > 1500 
+                            ? 'text-yellow-600' 
+                            : 'text-gray-500'
+                      }`}>
+                        {uploadDescription.length}/255 characters
+                      </p>
+                      {uploadDescription.length > 255 && (
+                        <p className="text-xs text-red-500">Too long!</p>
+                      )}
+                    </div>
                   </div>
 
                   <Button
                     type="submit"
-                    disabled={uploadMutation.isPending || !uploadFile || !uploadName.trim()}
+                    disabled={uploadMutation.isPending || !uploadFile || !uploadName.trim() || uploadName.length > 100 || uploadDescription.length > 255}
                     className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploadMutation.isPending ? (
@@ -199,12 +330,20 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
             ) : documents && documents.length > 0 ? (
               <div className="grid gap-4">
                 {documents.map((doc) => (
-                  <DocumentCard 
-                    key={doc.id} 
-                    document={doc}
-                    showActions={true}
+                  <DocumentListCard
+                    key={doc.id}
+                    doc={doc}
+                    editingDocument={editingDocument}
+                    editName={editName}
+                    editDescription={editDescription}
+                    onNameChange={setEditName}
+                    onDescriptionChange={setEditDescription}
+                    onSave={handleUpdate}
+                    onCancel={cancelEdit}
+                    onStartEdit={startEdit}
                     onDownload={handleDownload}
                     onDelete={handleDelete}
+                    isUpdating={updateMutation.isPending}
                     isDownloading={isDownloading}
                     isDeleting={deleteMutation.isPending}
                   />
@@ -218,6 +357,17 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Document"
+        description={`Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        destructive={true}
+      />
     </div>
   );
 } 

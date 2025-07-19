@@ -3,7 +3,7 @@ events {
 }
 
 http {
-    resolver 127.0.0.11 valid=30s ipv6=off;
+    resolver ${DNS_SERVER} valid=30s ipv6=off;
 
     server {
         listen 80;

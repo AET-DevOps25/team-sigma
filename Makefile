@@ -1,29 +1,14 @@
 .PHONY: run-dev test test-servers test-client test-all \
-        test-api-gateway test-document-service test-eureka test-lecture-service \
+        test-document-service test-lecture-service \
         test-chat-service test-summary-service
 
 run:
 	@echo "Starting Docker services..."
 	docker compose --project-name nemo --env-file .env -f build/docker-compose.yml up --build
 
-
-run-dev:
-	@echo "Starting all services in parallel..."
-	@parallel --line-buffer --colsep '\t' --tagstring '[{1}]' '{2}' ::: \
-		'docker	docker compose -f build/docker-compose.dev.yaml up --build' \
-		'client	cd client && bun i && bun dev' \
-		'eureka	cd server/eureka && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
-		'api-gateway	cd server/api-gateway && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
-		'document-service	cd server/document-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
-		'quiz-service	cd server/quiz-service && watchexec -r -e java,yml,yaml ./gradlew bootRun' \
-		'chat-service	cd server/chat-service && watchexec -r -e python,yml,yaml python main.py' \
-		'summary-service	cd server/summary-service && watchexec -r -e python,yml,yaml python main.py'
-
 # Directories of all server microservices that contain a Gradle wrapper
 SERVER_SERVICES := \
-	server/api-gateway \
 	server/document-service \
-	server/eureka \
 	server/lecture-service \
 	server/quiz-service
 
@@ -64,14 +49,8 @@ test-servers:
 
 # Convenience targets to run tests for an individual microservice
 
-test-api-gateway:
-	@$(MAKE) -C server/api-gateway test
-
 test-document-service:
 	@$(MAKE) -C server/document-service test
-
-test-eureka:
-	@$(MAKE) -C server/eureka test
 
 test-lecture-service:
 	@$(MAKE) -C server/lecture-service test

@@ -2,19 +2,237 @@ host: nemo.student.k8s.aet.cit.tum.de
 
 services:
   - name: client
-    targetPort: 80
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
     path: /
     image: ghcr.io/aet-devops25/team-sigma/client:latest
   - name: api-gateway
-    targetPort: 8080
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
     path: /api
     image: ghcr.io/aet-devops25/team-sigma/api-gateway:latest
-  - name: eureka
-    targetPort: 8761
-    image: ghcr.io/aet-devops25/team-sigma/eureka:latest
   - name: document-service
-    targetPort: 8080
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
     image: ghcr.io/aet-devops25/team-sigma/document-service:latest
+    env:
+      - name: SPRING_APPLICATION_NAME
+        value: document-service
+      - name: SERVER_PORT
+        value: "80"
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
+      - name: WEAVIATE_URL
+        value: weaviate:8080
+      - name: MINIO_URL
+        value: http://minio:9000
+      - name: MINIO_ACCESS_KEY
+        value: minioadmin
+      - name: MINIO_SECRET_KEY
+        value: minioadmin
+      - name: POSTGRES_HOST
+        value: postgres
+      - name: POSTGRES_PORT
+        value: "5432"
+      - name: POSTGRES_DB
+        value: document_db
+      - name: POSTGRES_USER
+        value: postgres
+      - name: POSTGRES_PASSWORD
+        value: postgres
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: openai-secret
+            key: api-key
+  - name: chat-service
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
+    image: ghcr.io/aet-devops25/team-sigma/chat-service:latest
+    env:
+      - name: SPRING_APPLICATION_NAME
+        value: chat-service
+      - name: SERVER_PORT
+        value: "80"
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: openai-secret
+            key: api-key
+  - name: summary-service
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
+    image: ghcr.io/aet-devops25/team-sigma/summary-service:latest
+    env:
+      - name: SPRING_APPLICATION_NAME
+        value: summary-service
+      - name: SERVER_PORT
+        value: "80"
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: openai-secret
+            key: api-key
+  - name: lecture-service
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
+    image: ghcr.io/aet-devops25/team-sigma/lecture-service:latest
+    env:
+      - name: SPRING_APPLICATION_NAME
+        value: lecture-service
+      - name: SERVER_PORT
+        value: "80"
+      - name: EUREKA_CLIENT_ENABLED
+        value: "false"
+      - name: SPRING_CLOUD_DISCOVERY_ENABLED
+        value: "false"
+      - name: POSTGRES_HOST
+        value: postgres
+      - name: POSTGRES_PORT
+        value: "5432"
+      - name: POSTGRES_DB
+        value: lecture_db
+      - name: POSTGRES_USER
+        value: postgres
+      - name: POSTGRES_PASSWORD
+        value: postgres
   - name: weaviate
-    targetPort: 8080
+    ports:
+      - name: http
+        containerPort: 8080
+        servicePort: 8080
     image: cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730
+    env:
+      - name: QUERY_DEFAULTS_LIMIT
+        value: "25"
+      - name: AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED
+        value: "true"
+      - name: PERSISTENCE_DATA_PATH
+        value: /var/lib/weaviate
+      - name: DEFAULT_VECTORIZER_MODULE
+        value: text2vec-openai
+      - name: ENABLE_MODULES
+        value: text2vec-openai,generative-openai
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: openai-secret
+            key: api-key
+      - name: OPENAI_APIKEY
+        valueFrom:
+          secretKeyRef:
+            name: openai-secret
+            key: api-key
+      - name: CLUSTER_HOSTNAME
+        value: node1
+  - name: minio
+    ports:
+      - name: api
+        containerPort: 9000
+        servicePort: 9000
+      - name: console
+        containerPort: 9001
+        servicePort: 9001
+    image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    command:
+      - minio
+    args:
+      - server
+      - /data
+      - --console-address
+      - ":9001"
+    env:
+      - name: MINIO_ROOT_USER
+        value: minioadmin
+      - name: MINIO_ROOT_PASSWORD
+        value: minioadmin
+      - name: MINIO_PROMETHEUS_AUTH_TYPE
+        value: public
+    volumeMounts:
+      - name: minio-data
+        mountPath: /data
+    volumes:
+      - name: minio-data
+        persistentVolumeClaim:
+          claimName: minio-data-pvc
+    persistentVolumeClaims:
+      - name: minio-data-pvc
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+  - name: postgres
+    ports:
+      - name: postgres
+        containerPort: 5432
+        servicePort: 5432
+    image: postgres:15-alpine
+    env:
+      - name: POSTGRES_USER
+        value: postgres
+      - name: POSTGRES_PASSWORD
+        value: postgres
+      - name: POSTGRES_DB
+        value: postgres
+    volumeMounts:
+      - name: postgres-init-scripts
+        mountPath: /docker-entrypoint-initdb.d
+      - name: postgres-data
+        mountPath: /var/lib/postgresql/data
+    volumes:
+      - name: postgres-init-scripts
+        configMap:
+          name: postgres-init-scripts
+          defaultMode: 0755
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-data-pvc
+    persistentVolumeClaims:
+      - name: postgres-data-pvc
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+  - name: prometheus
+    ports:
+      - name: http
+        containerPort: 9090
+        servicePort: 9090
+    image: prom/prometheus:latest
+  - name: grafana
+    ports:
+      - name: http
+        containerPort: 3000
+        servicePort: 3000
+    image: grafana/grafana:latest
+    env:
+      - name: GF_SECURITY_ADMIN_PASSWORD
+        value: admin
+      - name: GF_USERS_ALLOW_SIGN_UP
+        value: "false"
+      - name: GF_LOG_LEVEL
+        value: error

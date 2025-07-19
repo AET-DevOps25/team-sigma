@@ -1,11 +1,17 @@
-FROM gradle:8.14-jdk21-alpine AS builder
-WORKDIR /app
-COPY build.gradle settings.gradle ./
-COPY src ./src
-RUN gradle build
+FROM nginx:mainline-alpine-slim
 
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-COPY --from=builder /app/build/libs/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Install gettext package which provides envsubst
+RUN apk add --no-cache gettext
+
+# Copy the nginx configuration template
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+
+# Create a startup script that will extract DNS server and generate config
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'export DNS_SERVER=$(cat /etc/resolv.conf |grep -i "^nameserver"|head -n1|cut -d " " -f2)' >> /docker-entrypoint.sh && \
+    echo 'envsubst "\${DNS_SERVER}" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
+
+# Use the startup script as entrypoint
+ENTRYPOINT ["/docker-entrypoint.sh"]

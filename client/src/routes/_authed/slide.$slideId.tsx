@@ -8,7 +8,6 @@ import QuizTab from "../../components/SlideView/QuizTab";
 import ChatTab from "../../components/SlideView/ChatTab";
 import { useDocument, getDocumentPdfUrl } from "../../hooks/useApi";
 
-// Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export const Route = createFileRoute("/_authed/slide/$slideId")({
@@ -23,10 +22,8 @@ function SlideView() {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [pageLoading, setPageLoading] = useState<boolean>(false);
 
-  // Fetch document data from backend
   const { data: document, isLoading, error } = useDocument(parseInt(slideId));
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -37,7 +34,6 @@ function SlideView() {
     );
   }
 
-  // Error state
   if (error || !document) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -50,7 +46,6 @@ function SlideView() {
     );
   }
 
-  // Generate PDF URL using the API helper
   const pdfUrl = getDocumentPdfUrl(document.id);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -94,7 +89,6 @@ function SlideView() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center gap-4">
           <Button 
@@ -113,7 +107,12 @@ function SlideView() {
           </Button>
           <div className="flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-500" />
-            <h1 className="text-xl font-bold text-gray-800">{document.name}</h1>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-gray-800">{document.name}</h1>
+              {document.description && (
+                <p className="text-sm text-gray-600 mt-1">{document.description}</p>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -226,7 +225,6 @@ function SlideView() {
             </nav>
           </div>
 
-          {/* Tab Content */}
           <div className="flex-1 overflow-auto rounded-b-lg">
             {renderTabContent()}
           </div>

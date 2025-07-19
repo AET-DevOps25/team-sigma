@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import {
   useDocuments,
   useUploadDocument,
@@ -13,6 +14,7 @@ import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { ConfirmDialog } from './ui/confirm-dialog';
 
 interface DocumentsViewerProps {
   selectedLecture: Lecture;
@@ -24,6 +26,8 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadName, setUploadName] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
 
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments(selectedLecture.id.toString());
   const uploadMutation = useUploadDocument();
@@ -34,7 +38,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
     e.preventDefault();
     
     if (!uploadFile || !uploadName.trim()) {
-      alert('Please select a file and provide a name');
+      toast.error('Please select a file and provide a name');
       return;
     }
 
@@ -52,22 +56,28 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       setUploadDescription('');
       setShowUploadForm(false);
       
-      alert('Document uploaded successfully!');
+      toast.success('Document uploaded successfully!');
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+      toast.error('Upload failed. Please try again.');
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+  const handleDelete = (id: number, name: string) => {
+    setDocumentToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!documentToDelete) return;
 
     try {
-      await deleteMutation.mutateAsync(id);
-      alert('Document deleted successfully!');
+      await deleteMutation.mutateAsync(documentToDelete.id);
+      toast.success('Document deleted successfully!');
+      setDocumentToDelete(null);
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Delete failed. Please try again.');
+      toast.error('Delete failed. Please try again.');
     }
   };
 
@@ -76,7 +86,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       await downloadDocument(doc.id, doc.originalFilename);
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Download failed. Please try again.');
+      toast.error('Download failed. Please try again.');
     }
   };
 
@@ -225,6 +235,17 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Document"
+        description={`Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        destructive={true}
+      />
     </div>
   );
 } 

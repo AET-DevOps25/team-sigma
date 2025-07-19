@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BookOpen, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import type { Document } from "../../hooks/useApi";
 import { useGenerateSummary, useSummaryHealth } from "../../hooks/useApi";
 
@@ -50,8 +51,7 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ document }) => {
       setSummary(result.summary);
     } catch (error) {
       console.error('Failed to generate summary:', error);
-      const errorMessage = 'Failed to generate summary. Please try again.';
-      setSummary(errorMessage);
+      toast.error('Failed to generate summary. Please try again.');
     } finally {
       setIsGenerating(false);
     }

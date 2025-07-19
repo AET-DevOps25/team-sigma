@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import {
   useDocuments,
   useDocumentSearch,
@@ -11,33 +12,32 @@ import {
   type DocumentUploadRequest,
 } from '../hooks/useApi';
 import { Button } from './ui/button';
+import { ConfirmDialog } from './ui/confirm-dialog';
 
 export function DocumentManager() {
-  // State for forms and UI
   const [searchQuery, setSearchQuery] = useState('');
   const [similarQuery, setSimilarQuery] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadName, setUploadName] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [activeTab, setActiveTab] = useState<'list' | 'search' | 'similar' | 'upload'>('list');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
 
-  // API hooks
   const { data: gatewayHealth } = useGatewayHealth();
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments();
   const { data: searchResults, isLoading: searchLoading } = useDocumentSearch(searchQuery);
   const { data: similarResults, isLoading: similarLoading } = useSimilarDocuments(similarQuery);
   
-  // Mutations
   const uploadMutation = useUploadDocument();
   const deleteMutation = useDeleteDocument();
   const { downloadDocument, isDownloading } = useDocumentDownload();
 
-  // Handle file upload
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!uploadFile || !uploadName.trim()) {
-      alert('Please select a file and provide a name');
+      toast.error('Please select a file and provide a name');
       return;
     }
 
@@ -50,45 +50,46 @@ export function DocumentManager() {
     try {
       await uploadMutation.mutateAsync({ file: uploadFile, metadata });
       
-      // Reset form
       setUploadFile(null);
       setUploadName('');
       setUploadDescription('');
       
-      // Switch to list tab to see the uploaded document
       setActiveTab('list');
       
-      alert('Document uploaded successfully!');
+      toast.success('Document uploaded successfully!');
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+      toast.error('Upload failed. Please try again.');
     }
   };
 
-  // Handle file deletion
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+  const handleDelete = (id: number, name: string) => {
+    setDocumentToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!documentToDelete) return;
 
     try {
-      await deleteMutation.mutateAsync(id);
-      alert('Document deleted successfully!');
+      await deleteMutation.mutateAsync(documentToDelete.id);
+      toast.success('Document deleted successfully!');
+      setDocumentToDelete(null);
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Delete failed. Please try again.');
+      toast.error('Delete failed. Please try again.');
     }
   };
 
-  // Handle file download
   const handleDownload = async (doc: Document) => {
     try {
       await downloadDocument(doc.id, doc.originalFilename);
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Download failed. Please try again.');
+      toast.error('Download failed. Please try again.');
     }
   };
 
-  // Format file size
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -97,12 +98,10 @@ export function DocumentManager() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Format date
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleString();
   };
 
-  // Document list component
   const DocumentList: React.FC<{ documents: Document[]; title: string; loading?: boolean }> = ({ 
     documents, 
     title, 
@@ -166,7 +165,6 @@ export function DocumentManager() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 space-y-8">
         
-        {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             📄 Document Management System
@@ -176,7 +174,6 @@ export function DocumentManager() {
           </p>
         </div>
 
-        {/* Status Banner */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -205,7 +202,6 @@ export function DocumentManager() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
@@ -236,7 +232,6 @@ export function DocumentManager() {
           </div>
 
           <div className="p-6">
-            {/* All Documents Tab */}
             {activeTab === 'list' && (
               <DocumentList 
                 documents={documents || []} 
@@ -245,7 +240,6 @@ export function DocumentManager() {
               />
             )}
 
-            {/* Search Tab */}
             {activeTab === 'search' && (
               <div className="space-y-6">
                 <div>
@@ -279,7 +273,6 @@ export function DocumentManager() {
               </div>
             )}
 
-            {/* Similar Documents Tab */}
             {activeTab === 'similar' && (
               <div className="space-y-6">
                 <div>
@@ -386,7 +379,6 @@ export function DocumentManager() {
           </div>
         </div>
 
-        {/* Architecture Info */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
             🏗️ React Query Integration
@@ -413,6 +405,17 @@ export function DocumentManager() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Document"
+        description={`Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        destructive={true}
+      />
     </div>
   );
 } 

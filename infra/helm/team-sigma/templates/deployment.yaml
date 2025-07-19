@@ -19,7 +19,15 @@ spec:
         image: {{ .image }}
         imagePullPolicy: Always
         ports:
+        {{- range .ports }}
         - containerPort: {{ .containerPort }}
+          {{- if .name }}
+          name: {{ .name }}
+          {{- end }}
+          {{- if .protocol }}
+          protocol: {{ .protocol }}
+          {{- end }}
+        {{- end }}
         {{- if .command }}
         command:
           {{- range .command }}
@@ -48,4 +56,27 @@ spec:
           {{- end }}
         {{- end }}
         {{- end }}
+        {{- if .volumeMounts }}
+        volumeMounts:
+        {{- range .volumeMounts }}
+        - name: {{ .name }}
+          mountPath: {{ .mountPath }}
+          {{- if .subPath }}
+          subPath: {{ .subPath }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+      {{- if .volumes }}
+      volumes:
+      {{- range .volumes }}
+      - name: {{ .name }}
+        {{- if .configMap }}
+        configMap:
+          name: {{ .configMap.name }}
+          {{- if .configMap.defaultMode }}
+          defaultMode: {{ .configMap.defaultMode }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
 {{- end }} 

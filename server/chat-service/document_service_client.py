@@ -1,8 +1,6 @@
 import logging
-import json
 from typing import Optional, List
 from urllib.parse import quote_plus
-import py_eureka_client.eureka_client as eureka_client
 import httpx
 from models import DocumentModel, DocumentChunkModel
 
@@ -11,22 +9,17 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentServiceClient:
-    
     def __init__(self):
         self.service_name = "document-service"
-    
+        self.http_client = httpx.AsyncClient()
+
     async def get_document_by_id(self, document_id: str) -> Optional[DocumentModel]:
         try:
             logger.info(f"Fetching document with ID: {document_id}")
-            
-            endpoint = f"/api/documents/{document_id}"
-            
-            response = await eureka_client.do_service(
-                self.service_name,
-                endpoint,
-                return_type="json"
+            response = await self.http_client.get(
+                f"http://{self.service_name}/api/documents/{document_id}"
             )
-            
+
             if response:
                 python_document_data = {
                     "id": response["id"],
@@ -39,90 +32,94 @@ class DocumentServiceClient:
                     "created_at": response["createdAt"],
                     "updated_at": response.get("updatedAt"),
                     "chunk_count": response["chunkCount"],
-                    "conversation": response.get("conversation", [])
+                    "conversation": response.get("conversation", []),
                 }
-                
-                logger.info(f"Successfully fetched document: {python_document_data['name']}")
+
+                logger.info(
+                    f"Successfully fetched document: {python_document_data['name']}"
+                )
                 return DocumentModel(**python_document_data)
             else:
                 logger.warning(f"Document not found with ID: {document_id}")
                 return None
-                
+
         except Exception as e:
             logger.error(f"Error fetching document {document_id}: {str(e)}")
             return None
 
-    async def search_similar_chunks(self, query: str, limit: int = 5) -> List[DocumentChunkModel]:
+    async def search_similar_chunks(
+        self, query: str, limit: int = 5
+    ) -> List[DocumentChunkModel]:
         try:
-            logger.info(f"Searching similar documents for query: '{query}' with limit: {limit}")
-            
-            endpoint = f"/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
-            
-            response = await eureka_client.do_service(
-                self.service_name,
-                endpoint,
-                return_type="json"
+            logger.info(
+                f"Searching similar documents for query: '{query}' with limit: {limit}"
             )
-            
+
+            response = await self.http_client.get(
+                f"http://document-service/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
+            )
+
             if response:
                 chunks = []
                 document_cache = {}
-                
+
                 for chunk_data in response:
                     document_id = chunk_data["documentId"]
-                    
+
                     if document_id not in document_cache:
                         document_info = await self.get_document_by_id(str(document_id))
                         document_cache[document_id] = document_info
-                    
+
                     document_info = document_cache[document_id]
-                    
+
                     chunk = DocumentChunkModel(
                         text=chunk_data["text"],
                         document_id=document_id,
-                        document_name=document_info.name if document_info else f"Document {document_id}",
-                        original_filename=document_info.original_filename if document_info else "Unknown",
-                        chunk_index=chunk_data.get("chunkIndex", 0)
+                        document_name=document_info.name
+                        if document_info
+                        else f"Document {document_id}",
+                        original_filename=document_info.original_filename
+                        if document_info
+                        else "Unknown",
+                        chunk_index=chunk_data.get("chunkIndex", 0),
                     )
                     chunks.append(chunk)
-                
-                logger.info(f"Successfully retrieved {len(chunks)} chunks from similar documents search")
+
+                logger.info(
+                    f"Successfully retrieved {len(chunks)} chunks from similar documents search"
+                )
                 return chunks
             else:
                 logger.warning(f"No chunks found for query: {query}")
                 return []
-                
+
         except Exception as e:
-            logger.error(f"Error searching similar documents for query '{query}': {str(e)}")
+            logger.error(
+                f"Error searching similar documents for query '{query}': {str(e)}"
+            )
             return []
 
-    async def add_message_to_conversation(self, document_id: str, message_type: str, content: str) -> bool:
+    async def add_message_to_conversation(
+        self, document_id: str, message_type: str, content: str
+    ) -> bool:
         try:
             logger.info(f"Adding {message_type} message to document {document_id}")
-            
-            endpoint = f"/api/documents/{document_id}/conversation"
-            
-            request_body = {
-                "messageType": message_type,
-                "content": content
-            }
-            
-            response = await eureka_client.do_service(
-                self.service_name,
-                endpoint,
-                return_type="json",
-                method="POST",
-                data=request_body,
-                headers={"Content-Type": "application/json"}
+            request_body = {"messageType": message_type, "content": content}
+
+            response = await self.http_client.post(
+                f"http://document-service/api/documents/{document_id}/conversation",
+                json=request_body,
             )
-            
+
             if response:
-                logger.info(f"Successfully added {message_type} message to document {document_id}")
+                logger.info(
+                    f"Successfully added {message_type} message to document {document_id}"
+                )
                 return True
             else:
                 logger.warning(f"Failed to add message to document {document_id}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"Error adding message to document {document_id}: {str(e)}")
-            return False 
+            return False

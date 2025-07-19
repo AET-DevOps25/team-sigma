@@ -220,37 +220,37 @@ export class CdkStack extends cdk.Stack {
     });
 
     // // 5. Client (React SPA served via nginx, public)
-    // const clientImage = ecs.ContainerImage.fromAsset(
-    //   path.join(REPO_ROOT, "client"),
-    //   {
-    //     platform: ecr_assets.Platform.LINUX_AMD64,
-    //   }
-    // );
+    const clientImage = ecs.ContainerImage.fromAsset(
+      path.join(REPO_ROOT, "client"),
+      {
+        platform: ecr_assets.Platform.LINUX_AMD64,
+      }
+    );
 
-    // const clientService =
-    //   new ecs_patterns.ApplicationLoadBalancedFargateService(
-    //     this,
-    //     "ClientService",
-    //     {
-    //       cluster,
-    //       desiredCount: 1,
-    //       publicLoadBalancer: true,
-    //       securityGroups: [internalServicesSecurityGroup],
-    //       capacityProviderStrategies: [
-    //         { capacityProvider: "FARGATE_SPOT", weight: 1 },
-    //       ],
-    //       minHealthyPercent: 0,
-    //       memoryLimitMiB: 512,
-    //       cpu: 256,
-    //       taskImageOptions: {
-    //         image: clientImage,
-    //         containerPort: 80,
-    //         environment: {
-    //           API_GATEWAY_URL: `http://${apiGatewayService.loadBalancer.loadBalancerDnsName}`,
-    //         },
-    //       },
-    //     }
-    //   );
+    const clientService =
+      new ecs_patterns.ApplicationLoadBalancedFargateService(
+        this,
+        "ClientService",
+        {
+          cluster,
+          desiredCount: 1,
+          publicLoadBalancer: true,
+          securityGroups: [internalServicesSecurityGroup],
+          capacityProviderStrategies: [
+            { capacityProvider: "FARGATE_SPOT", weight: 1 },
+          ],
+          minHealthyPercent: 0,
+          memoryLimitMiB: 512,
+          cpu: 256,
+          taskImageOptions: {
+            image: clientImage,
+            containerPort: 80,
+            environment: {
+              API_GATEWAY_URL: `http://${apiGatewayService.loadBalancer.loadBalancerDnsName}`,
+            },
+          },
+        }
+      );
 
     // 4. Eureka Service Registry
     createInternalService(
@@ -392,10 +392,10 @@ export class CdkStack extends cdk.Stack {
       description: 'API Gateway Load Balancer URL',
     });
 
-    // new cdk.CfnOutput(this, 'ClientUrl', {
-    //   value: clientService.loadBalancer.loadBalancerDnsName,
-    //   description: 'Client Load Balancer URL',
-    // });
+    new cdk.CfnOutput(this, 'ClientUrl', {
+      value: clientService.loadBalancer.loadBalancerDnsName,
+      description: 'Client Load Balancer URL',
+    });
 
     // example resource
     // const queue = new sqs.Queue(this, 'CdkQueue', {

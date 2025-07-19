@@ -80,6 +80,13 @@ export class CdkStack extends cdk.Stack {
       secretName: 'team-sigma-db-credentials',
     });
 
+    // Security group for RDS instance – will allow traffic from internal services (rule added later)
+    const databaseSecurityGroup = new ec2.SecurityGroup(this, 'DatabaseSecurityGroup', {
+      vpc,
+      description: 'Allow Postgres access from ECS services',
+      allowAllOutbound: true,
+    });
+
     const database = new rds.DatabaseInstance(this, 'Database', {
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.VER_15,
@@ -89,6 +96,7 @@ export class CdkStack extends cdk.Stack {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       databaseName: 'teamsgima',
+      securityGroups: [databaseSecurityGroup],
       removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test
       deleteAutomatedBackups: true, // for dev/test
       backupRetention: cdk.Duration.days(0), // no backups for cost savings
@@ -117,12 +125,20 @@ export class CdkStack extends cdk.Stack {
       'Allow communication between internal services'
     );
 
+    // Allow ECS tasks to connect to the database
+    databaseSecurityGroup.addIngressRule(
+      internalServicesSecurityGroup,
+      ec2.Port.tcp(5432),
+      'PostgreSQL access from ECS services'
+    );
+
     // Helper function to create a simple FargateService for internal services (no public load balancer)
     const createInternalService = (
       id: string,
       containerImage: ecs.ContainerImage,
       containerPort: number,
       environment?: { [key: string]: string },
+      secrets?: { [key: string]: ecs.Secret },
     ) => {
       const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
         memoryLimitMiB: 512, // lowest allowed for 0.25 vCPU
@@ -138,6 +154,7 @@ export class CdkStack extends cdk.Stack {
         containerName: id.toLowerCase(),
         portMappings: [{ containerPort }],
         environment,
+        secrets,
         logging: ecs.LogDrivers.awsLogs({ streamPrefix: id.toLowerCase() }),
       });
 
@@ -197,7 +214,7 @@ export class CdkStack extends cdk.Stack {
               SERVER_PORT: "8080",
               // Eureka configuration
               EUREKA_CLIENT_ENABLED: "true",
-              EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+              EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
             },
           },
         }
@@ -220,37 +237,37 @@ export class CdkStack extends cdk.Stack {
     });
 
     // // 5. Client (React SPA served via nginx, public)
-    // const clientImage = ecs.ContainerImage.fromAsset(
-    //   path.join(REPO_ROOT, "client"),
-    //   {
-    //     platform: ecr_assets.Platform.LINUX_AMD64,
-    //   }
-    // );
+    const clientImage = ecs.ContainerImage.fromAsset(
+      path.join(REPO_ROOT, "client"),
+      {
+        platform: ecr_assets.Platform.LINUX_AMD64,
+      }
+    );
 
-    // const clientService =
-    //   new ecs_patterns.ApplicationLoadBalancedFargateService(
-    //     this,
-    //     "ClientService",
-    //     {
-    //       cluster,
-    //       desiredCount: 1,
-    //       publicLoadBalancer: true,
-    //       securityGroups: [internalServicesSecurityGroup],
-    //       capacityProviderStrategies: [
-    //         { capacityProvider: "FARGATE_SPOT", weight: 1 },
-    //       ],
-    //       minHealthyPercent: 0,
-    //       memoryLimitMiB: 512,
-    //       cpu: 256,
-    //       taskImageOptions: {
-    //         image: clientImage,
-    //         containerPort: 80,
-    //         environment: {
-    //           API_GATEWAY_URL: `http://${apiGatewayService.loadBalancer.loadBalancerDnsName}`,
-    //         },
-    //       },
-    //     }
-    //   );
+    const clientService =
+      new ecs_patterns.ApplicationLoadBalancedFargateService(
+        this,
+        "ClientService",
+        {
+          cluster,
+          desiredCount: 1,
+          publicLoadBalancer: true,
+          securityGroups: [internalServicesSecurityGroup],
+          capacityProviderStrategies: [
+            { capacityProvider: "FARGATE_SPOT", weight: 1 },
+          ],
+          minHealthyPercent: 0,
+          memoryLimitMiB: 512,
+          cpu: 256,
+          taskImageOptions: {
+            image: clientImage,
+            containerPort: 80,
+            environment: {
+              API_GATEWAY_URL: `http://${apiGatewayService.loadBalancer.loadBalancerDnsName}`,
+            },
+          },
+        }
+      );
 
     // 4. Eureka Service Registry
     createInternalService(
@@ -288,14 +305,17 @@ export class CdkStack extends cdk.Stack {
         // S3 configuration
         AWS_REGION: this.region,
         S3_BUCKET_NAME: documentBucket.bucketName,
-        // RDS configuration
-        DB_HOST: database.instanceEndpoint.hostname,
-        DB_PORT: database.instanceEndpoint.port.toString(),
-        DB_NAME: 'teamsgima',
-        DB_SECRET_ARN: database.secret?.secretArn ?? '',
+        // Database host and name
+        POSTGRES_HOST: database.instanceEndpoint.hostname,
+        POSTGRES_PORT: database.instanceEndpoint.port.toString(),
+        POSTGRES_DB: 'teamsgima',
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
+      },
+      {
+        POSTGRES_USER: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
+        POSTGRES_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
       }
     );
 
@@ -314,7 +334,7 @@ export class CdkStack extends cdk.Stack {
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
       }
     );
 
@@ -333,7 +353,7 @@ export class CdkStack extends cdk.Stack {
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
       }
     );
 
@@ -349,13 +369,15 @@ export class CdkStack extends cdk.Stack {
       {
         SPRING_APPLICATION_NAME: "lecture-service",
         SERVER_PORT: "8083",
-        // RDS configuration
-        DB_HOST: database.instanceEndpoint.hostname,
-        DB_PORT: database.instanceEndpoint.port.toString(),
-        DB_NAME: 'teamsgima',
-        DB_SECRET_ARN: database.secret?.secretArn ?? '',
+        POSTGRES_HOST: database.instanceEndpoint.hostname,
+        POSTGRES_PORT: database.instanceEndpoint.port.toString(),
+        POSTGRES_DB: 'teamsgima',
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
+      },
+      {
+        POSTGRES_USER: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
+        POSTGRES_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
       }
     );
 
@@ -392,10 +414,10 @@ export class CdkStack extends cdk.Stack {
       description: 'API Gateway Load Balancer URL',
     });
 
-    // new cdk.CfnOutput(this, 'ClientUrl', {
-    //   value: clientService.loadBalancer.loadBalancerDnsName,
-    //   description: 'Client Load Balancer URL',
-    // });
+    new cdk.CfnOutput(this, 'ClientUrl', {
+      value: clientService.loadBalancer.loadBalancerDnsName,
+      description: 'Client Load Balancer URL',
+    });
 
     // example resource
     // const queue = new sqs.Queue(this, 'CdkQueue', {

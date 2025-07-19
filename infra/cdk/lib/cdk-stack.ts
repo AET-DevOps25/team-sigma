@@ -197,7 +197,7 @@ export class CdkStack extends cdk.Stack {
               SERVER_PORT: "8080",
               // Eureka configuration
               EUREKA_CLIENT_ENABLED: "true",
-              EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+              EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
             },
           },
         }
@@ -295,7 +295,7 @@ export class CdkStack extends cdk.Stack {
         DB_SECRET_ARN: database.secret?.secretArn ?? '',
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
       }
     );
 
@@ -314,7 +314,7 @@ export class CdkStack extends cdk.Stack {
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
       }
     );
 
@@ -333,7 +333,7 @@ export class CdkStack extends cdk.Stack {
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
       }
     );
 
@@ -355,7 +355,7 @@ export class CdkStack extends cdk.Stack {
         DB_NAME: 'teamsgima',
         DB_SECRET_ARN: database.secret?.secretArn ?? '',
         // Eureka configuration
-        EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka:8761/eureka",
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
       }
     );
 

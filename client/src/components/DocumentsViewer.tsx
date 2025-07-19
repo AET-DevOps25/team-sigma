@@ -128,7 +128,14 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                     </Label>
                     <Input
                       type="file"
-                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setUploadFile(file);
+                        if (file) {
+                          const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
+                          setUploadName(nameWithoutExtension);
+                        }
+                      }}
                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       required
                     />

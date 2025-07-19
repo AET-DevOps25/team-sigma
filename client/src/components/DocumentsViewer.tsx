@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   useDocuments,
@@ -28,6 +28,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
   const [uploadDescription, setUploadDescription] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const { data: documents, isLoading: documentsLoading, error: documentsError } = useDocuments(selectedLecture.id.toString());
   const uploadMutation = useUploadDocument();
@@ -144,6 +145,9 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                         if (file) {
                           const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
                           setUploadName(nameWithoutExtension);
+                          setTimeout(() => {
+                            nameInputRef.current?.select();
+                          }, 0);
                         }
                       }}
                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
@@ -161,6 +165,7 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                       Document Name *
                     </Label>
                     <Input
+                      ref={nameInputRef}
                       type="text"
                       value={uploadName}
                       onChange={(e) => setUploadName(e.target.value)}

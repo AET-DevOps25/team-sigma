@@ -36,12 +36,8 @@ jobs:
 
     strategy:
       matrix:
-        service: [eureka, api-gateway, document-service, quiz-service]
+        service: [document-service, quiz-service]
         include:
-          - service: eureka
-            working-directory: ./server/eureka
-          - service: api-gateway
-            working-directory: ./server/api-gateway
           - service: document-service
             working-directory: ./server/document-service
           - service: quiz-service

@@ -176,6 +176,20 @@ services:
         value: minioadmin
       - name: MINIO_PROMETHEUS_AUTH_TYPE
         value: public
+    volumeMounts:
+      - name: minio-data
+        mountPath: /data
+    volumes:
+      - name: minio-data
+        persistentVolumeClaim:
+          claimName: minio-data-pvc
+    persistentVolumeClaims:
+      - name: minio-data-pvc
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
   - name: postgres
     ports:
       - name: postgres
@@ -192,11 +206,23 @@ services:
     volumeMounts:
       - name: postgres-init-scripts
         mountPath: /docker-entrypoint-initdb.d
+      - name: postgres-data
+        mountPath: /var/lib/postgresql/data
     volumes:
       - name: postgres-init-scripts
         configMap:
           name: postgres-init-scripts
           defaultMode: 0755
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-data-pvc
+    persistentVolumeClaims:
+      - name: postgres-data-pvc
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
   - name: prometheus
     ports:
       - name: http

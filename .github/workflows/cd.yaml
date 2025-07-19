@@ -16,7 +16,17 @@ jobs:
 
     strategy:
       matrix:
-        service: [client, eureka, api-gateway, document-service, quiz-service]
+        service:
+          [
+            client,
+            eureka,
+            api-gateway,
+            document-service,
+            quiz-service,
+            chat-service,
+            summary-service,
+            lecture-service,
+          ]
         include:
           - service: client
             context: ./client
@@ -33,6 +43,15 @@ jobs:
           - service: quiz-service
             context: ./server/quiz-service
             dockerfile: ./server/quiz-service/Dockerfile
+          - service: chat-service
+            context: ./server/chat-service
+            dockerfile: ./server/chat-service/Dockerfile
+          - service: summary-service
+            context: ./server/summary-service
+            dockerfile: ./server/summary-service/Dockerfile
+          - service: lecture-service
+            context: ./server/lecture-service
+            dockerfile: ./server/lecture-service/Dockerfile
 
     steps:
       - name: Checkout repository

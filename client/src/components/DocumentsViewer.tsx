@@ -50,9 +50,21 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       return;
     }
 
+    const trimmedName = uploadName.trim();
+    if (trimmedName.length > 100) {
+      toast.error('Document name is too long. Please keep it under 100 characters.');
+      return;
+    }
+
+    const trimmedDescription = uploadDescription.trim();
+    if (trimmedDescription.length > 255) {
+      toast.error('Description is too long. Please keep it under 255 characters.');
+      return;
+    }
+
     const metadata: DocumentUploadRequest = {
       name: uploadName.trim(),
-      description: uploadDescription.trim() || undefined,
+      description: trimmedDescription || undefined,
       lectureId: selectedLecture.id.toString(),
     };
 
@@ -79,9 +91,21 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
       return;
     }
 
+    const trimmedName = editName.trim();
+    if (trimmedName.length > 100) {
+      toast.error('Document name is too long. Please keep it under 100 characters.');
+      return;
+    }
+
+    const trimmedDescription = editDescription.trim();
+    if (trimmedDescription.length > 255) {
+      toast.error('Description is too long. Please keep it under 255 characters.');
+      return;
+    }
+
     const metadata: DocumentUploadRequest = {
       name: editName.trim(),
-      description: editDescription.trim() || undefined,
+      description: trimmedDescription || undefined,
       lectureId: selectedLecture.id.toString(),
     };
 
@@ -217,9 +241,28 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                       value={uploadName}
                       onChange={(e) => setUploadName(e.target.value)}
                       placeholder="Enter a descriptive name..."
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        uploadName.length > 100 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300'
+                      }`}
                       required
+                      maxLength={120}
                     />
+                    <div className="flex justify-between mt-1">
+                      <p className={`text-xs ${
+                        uploadName.length > 100 
+                          ? 'text-red-500' 
+                          : uploadName.length > 90 
+                            ? 'text-yellow-600' 
+                            : 'text-gray-500'
+                      }`}>
+                        {uploadName.length}/100 characters
+                      </p>
+                      {uploadName.length > 100 && (
+                        <p className="text-xs text-red-500">Too long!</p>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -231,13 +274,32 @@ export function DocumentsViewer({ selectedLecture, onBack }: DocumentsViewerProp
                       onChange={(e) => setUploadDescription(e.target.value)}
                       placeholder="Add a description to make the document easier to find..."
                       rows={3}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        uploadDescription.length > 255 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300'
+                      }`}
+                      maxLength={300}
                     />
+                    <div className="flex justify-between mt-1">
+                      <p className={`text-xs ${
+                        uploadDescription.length > 255 
+                          ? 'text-red-500' 
+                          : uploadDescription.length > 1500 
+                            ? 'text-yellow-600' 
+                            : 'text-gray-500'
+                      }`}>
+                        {uploadDescription.length}/255 characters
+                      </p>
+                      {uploadDescription.length > 255 && (
+                        <p className="text-xs text-red-500">Too long!</p>
+                      )}
+                    </div>
                   </div>
 
                   <Button
                     type="submit"
-                    disabled={uploadMutation.isPending || !uploadFile || !uploadName.trim()}
+                    disabled={uploadMutation.isPending || !uploadFile || !uploadName.trim() || uploadName.length > 100 || uploadDescription.length > 255}
                     className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploadMutation.isPending ? (

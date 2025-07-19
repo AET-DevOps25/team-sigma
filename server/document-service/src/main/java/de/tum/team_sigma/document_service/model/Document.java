@@ -40,7 +40,7 @@ public class Document {
     @Column(name = "minio_path", nullable = false)
     private String minioPath;
     
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
     
     @Column(name = "lecture_id")

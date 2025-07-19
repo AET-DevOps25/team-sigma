@@ -268,9 +268,10 @@ export class CdkStack extends cdk.Stack {
         domainNames: [clientDomainName],
         defaultRootObject: "index.html",
         defaultBehavior: {
-          origin: new origins.S3Origin(clientBucket, {
-            originAccessIdentity: clientOai,
-          }),
+          origin: origins.S3BucketOrigin.withOriginAccessIdentity(
+            clientBucket,
+            { originAccessIdentity: clientOai }
+          ),
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         },

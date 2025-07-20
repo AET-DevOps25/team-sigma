@@ -11,35 +11,58 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Document Service
-  - job_name: "document-service"
+  - job_name: "api-gateway"
     static_configs:
-      - targets: ["document-service:8080"]
+      - targets: ["api-gateway"]
     metrics_path: "/actuator/prometheus"
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Chat Service (Python FastAPI)
+  # Chat Service
   - job_name: "chat-service"
     static_configs:
-      - targets: ["chat-service:8082"]
+      - targets: ["chat-service"]
     metrics_path: "/metrics"
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Summary Service (Python FastAPI)
-  - job_name: "summary-service"
+  # Document Service
+  - job_name: "document-service"
     static_configs:
-      - targets: ["summary-service:8084"]
-    metrics_path: "/metrics"
+      - targets: ["document-service"]
+    metrics_path: "/actuator/prometheus"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # GenAI Service
+  - job_name: "genai-service"
+    static_configs:
+      - targets: ["genai-service"]
+    metrics_path: "/actuator/prometheus"
     scrape_interval: 15s
     scrape_timeout: 10s
 
   # Lecture Service
   - job_name: "lecture-service"
     static_configs:
-      - targets: ["lecture-service:8083"]
+      - targets: ["lecture-service"]
     metrics_path: "/actuator/prometheus"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Quiz Service
+  - job_name: "quiz-service"
+    static_configs:
+      - targets: ["quiz-service"]
+    metrics_path: "/actuator/prometheus"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Summary Service
+  - job_name: "summary-service"
+    static_configs:
+      - targets: ["summary-service"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
     scrape_timeout: 10s
 

@@ -30,8 +30,7 @@ Make sure that the whole slide is covered by the questions.
 
 @app.get("/api/quiz/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy"}
+    return {"status": "healthy", "service": "quiz-service"}
 
 
 @app.post("/api/quiz/{document_id}")

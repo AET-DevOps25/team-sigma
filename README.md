@@ -379,7 +379,7 @@ All endpoints are accessed through the API Gateway running on port 8080. Authent
 
 ## Monitoring and Observability
 
-Nemo implements comprehensive monitoring using Prometheus and Grafana, providing real-time observability across all microservices.
+Nemo implements comprehensive monitoring using Prometheus and Grafana, providing real-time observability across all microservices. It can be reached at `localhost:3001` when developing locally, or at https://nemo.student.k8s.aet.cit.tum.de/grafana.
 
 ### Prometheus Configuration
 

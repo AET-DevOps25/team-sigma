@@ -421,6 +421,27 @@ Follow these steps to deploy the full stack to your AWS account using the CDK pr
 
 > **Tip:** Subsequent UI changes only require repeating steps 3–4. Infrastructure changes (e.g., adding a new service) require running the full deploy again.
 
+## CI/CD Pipeline (GitHub Actions)
+
+The repository ships with an automated pipeline built on **GitHub Actions**. The workflows live under `.github/workflows` and cover pull-request validation, container builds, and production deployment.
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `pr-title.yaml` | `pull_request` (open / edit) | Enforces [Conventional Commits](https://www.conventionalcommits.org/) in PR titles. Keeps commit history clean and automatable. |
+| `pr-tests.yaml` | `pull_request` to `main` | Runs unit tests and build checks before code can be merged. • Frontend: installs dependencies with **Bun**, executes `bun run test`, and performs a production build.<br/>• Backend (matrix): compiles **Document Service** & **Quiz Service** with Gradle 8 + Temurin 21. |
+| `cd.yaml` | `push` to `main` | Performs continuous delivery: <br/>1. **Build & Push** job (matrix) – Builds Docker images for every service (`client`, `api-gateway`, `document-service`, `quiz-service`, `chat-service`, `summary-service`, `lecture-service`, `genai-service`) using Buildx and pushes `latest` tags to **GHCR**.<br/>2. **Deploy** job – Uses Helm to `upgrade` the `team-sigma` chart in the `nemo` namespace of the target Kubernetes cluster (kubeconfig provided via encrypted secret). Afterwards rolls all deployments and verifies pod / service / ingress status. |
+
+### Key Implementation Details
+
+- **Docker Buildx caching** is enabled (`cache-from/to: gha`) for faster subsequent builds.
+- Images are multi-arch ready (`linux/amd64`). You can extend the matrix to `arm64` if needed.
+- Deployment relies on these GitHub secrets:
+  - `KUBECONFIG` – base64-encoded kubeconfig of the target cluster.
+  - `GITHUB_TOKEN` – automatically provided for pushing images to GHCR.
+- Helm chart resides in `infra/helm/team-sigma`; `helm upgrade` is executed with `--wait` and `--timeout=5m` to ensure zero-downtime rollout.
+
+> **How it fits together:** For every merge to `main`, containers are rebuilt and published, then the latest chart is deployed to the cluster. During development, every PR must pass tests and adhere to Conventional Commit linting before it can be merged, guaranteeing a stable main branch.
+
 # Setup Instructions for Local Development
 ## Prerequisites
 

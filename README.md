@@ -150,15 +150,10 @@ Generates interactive quiz questions from uploaded documents using GenAI service
 - Detailed explanation for the answer
 - Focus on exam-relevant content
 
-**Document Integration** \
+**Document Integration**
 - Downloads document content via document service
 - Processes entire document to ensure comprehensive coverage
 - Maintains context while generating questions
-
-**Quality Control** \
-- Ensures questions are exam-focused and practical
-- Avoids trivial or irrelevant details
-- Provides balanced coverage of document content
 
 ### 8. GenAI Microservicex
 ### Responsible Students:

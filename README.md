@@ -317,6 +317,19 @@ General HTTP traffic monitoring:
 - Request count by service
 - Request duration metrics
 - Request rate tracking
+
+# Architecture Overview
+#### Use Case Diagram
+![Use Case Diagram](docs/readme/use-case.png)
+
+#### UML Class Diagram
+This class diagram shows the relationships between objects in the application
+![Class Diagram](docs/readme/class-diagram.png)
+
+#### Top-Level Architecture
+This diagram shows the top level architecture
+![Top Level Architecture](docs/diagrams/top-level-architecture.svg)
+
 # Setup Instructions for Local Development
 ## Prerequisites
 

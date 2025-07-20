@@ -9,6 +9,9 @@ upgrade-prod:
 list-prod:
 	kubectl get all -n nemo --context student
 
+reload-prod:
+	kubectl rollout restart deployment -n nemo --context student
+
 delete-prod:
 	kubectl delete namespace nemo --context student
 

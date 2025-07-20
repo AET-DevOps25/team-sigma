@@ -7,17 +7,12 @@ import de.tum.team_sigma.document_service.model.Document;
 import de.tum.team_sigma.document_service.model.DocumentChunk;
 import de.tum.team_sigma.document_service.repository.DocumentChunkRepository;
 import de.tum.team_sigma.document_service.repository.DocumentRepository;
-import io.minio.GetObjectArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
 import io.weaviate.client.WeaviateClient;
 import io.weaviate.client.v1.graphql.query.argument.NearTextArgument;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +20,7 @@ import java.util.stream.Collectors;
 
 import java.io.InputStream;
 import java.util.*;
+import de.tum.team_sigma.document_service.storage.ObjectStorageService;
 
 @Service
 @Transactional
@@ -39,13 +35,12 @@ public class DocumentService {
     private DocumentChunkRepository documentChunkRepository;
     
     @Autowired
-    private MinioClient minioClient;
+    private ObjectStorageService storageService;
     
     @Autowired
     private WeaviateClient weaviateClient;
     
-    @Value("${minio.bucket-name}")
-    private String bucketName;
+    // Bucket name is encapsulated in storageService implementations.
     
     private final Tika tika = new Tika();
     
@@ -53,11 +48,11 @@ public class DocumentService {
         try {
             logger.info("Starting document upload: {}", request.getName());
             
-            // Generate unique file path for MinIO
-            String minioPath = generateMinioPath(file.getOriginalFilename());
+            // Generate unique S3 object key
+            String objectKey = generateObjectKey(file.getOriginalFilename());
             
-            // Store file in MinIO
-            storeFileInMinio(file, minioPath);
+            // Store file via storage service
+            storeFile(file, objectKey);
             
             // Extract text content using Tika
             String extractedText = tika.parseToString(file.getInputStream());
@@ -69,7 +64,7 @@ public class DocumentService {
                 file.getOriginalFilename(),
                 file.getContentType(),
                 file.getSize(),
-                minioPath,
+                objectKey,
                 request.getLectureId()
             );
             document.setDescription(request.getDescription());
@@ -136,24 +131,17 @@ public class DocumentService {
         }
     }
     
-    private void storeFileInMinio(MultipartFile file, String minioPath) {
+    private void storeFile(MultipartFile file, String objectKey) {
         try {
-            minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(minioPath)
-                    .stream(file.getInputStream(), file.getSize(), -1)
-                    .contentType(file.getContentType())
-                    .build()
-            );
-            logger.info("File stored in MinIO: {}", minioPath);
+            storageService.putObject(objectKey, file.getInputStream(), file.getSize(), file.getContentType());
+            logger.info("File stored: {}", objectKey);
         } catch (Exception e) {
-            logger.error("Failed to store file in MinIO: {}", minioPath, e);
-            throw new RuntimeException("Failed to store file in MinIO", e);
+            logger.error("Failed to store file: {}", objectKey, e);
+            throw new RuntimeException("Failed to store file", e);
         }
     }
     
-    private String generateMinioPath(String originalFilename) {
+    private String generateObjectKey(String originalFilename) {
         String timestamp = String.valueOf(System.currentTimeMillis());
         String uuid = UUID.randomUUID().toString().substring(0, 8);
         return "documents/" + timestamp + "_" + uuid + "_" + originalFilename;
@@ -253,14 +241,9 @@ public class DocumentService {
             }
         }
         
-        // Delete file from MinIO
-        minioClient.removeObject(
-            RemoveObjectArgs.builder()
-                .bucket(bucketName)
-                .object(document.getMinioPath())
-                .build()
-        );
-        logger.info("Deleted file from MinIO: {}", document.getMinioPath());
+        // Delete file using storage service
+        storageService.deleteObject(document.getMinioPath());
+        logger.info("Deleted file: {}", document.getMinioPath());
         
         // Delete document from database (cascades to chunks)
         documentRepository.delete(document);
@@ -272,12 +255,7 @@ public class DocumentService {
             Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
             
-            return minioClient.getObject(
-                GetObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(document.getMinioPath())
-                    .build()
-            );
+            return storageService.getObject(document.getMinioPath());
         } catch (Exception e) {
             logger.error("Failed to download document with id: {}", id, e);
             throw new RuntimeException("Failed to download document", e);

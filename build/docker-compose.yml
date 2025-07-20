@@ -16,7 +16,6 @@ services:
       - SPRING_APPLICATION_NAME=chat-service
       - SERVER_PORT=80
       - ENVIRONMENT=docker
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - api-gateway
       - document-service
@@ -38,7 +37,6 @@ services:
       - POSTGRES_DB=document_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - api-gateway
       - weaviate
@@ -77,12 +75,8 @@ services:
   quiz-service:
     build:
       context: ../server/quiz-service
-    environment:
-      - SPRING_APPLICATION_NAME=quiz-service
-      - SERVER_PORT=80
     depends_on:
       - api-gateway
-      - postgres
     networks:
       - spring-cloud-network
 
@@ -93,7 +87,6 @@ services:
       - SPRING_APPLICATION_NAME=summary-service
       - SERVER_PORT=80
       - ENVIRONMENT=docker
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - api-gateway
       - document-service

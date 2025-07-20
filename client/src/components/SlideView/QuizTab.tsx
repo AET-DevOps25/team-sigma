@@ -5,8 +5,10 @@ import {
   XCircle,
   RotateCcw,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "../ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Document, QuizQuestion } from "../../hooks/useApi";
 import { useQuizQuestions } from "../../hooks/useApi";
 
@@ -15,12 +17,19 @@ interface QuizTabProps {
 }
 
 const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
+  const queryClient = useQueryClient();
+
   // Fetch quiz questions from the server
-  const { data: quizQuestions, isLoading, error } = useQuizQuestions("test");
+  const {
+    data: quizQuestions,
+    isLoading,
+    error,
+  } = useQuizQuestions(document.id.toString());
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [isGeneratingNew, setIsGeneratingNew] = useState(false);
 
   const handleAnswerSelect = (answerIndex: number) => {
     if (quizCompleted || !quizQuestions) return;
@@ -52,6 +61,25 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
     setSelectedAnswers([]);
     setShowResults(false);
     setQuizCompleted(false);
+  };
+
+  const handleGenerateNew = async () => {
+    setIsGeneratingNew(true);
+    try {
+      // Invalidate the query to fetch new quiz questions
+      await queryClient.invalidateQueries({
+        queryKey: ["quiz", document.id.toString()],
+      });
+      // Reset quiz state
+      setCurrentQuestion(0);
+      setSelectedAnswers([]);
+      setShowResults(false);
+      setQuizCompleted(false);
+    } catch (error) {
+      console.error("Failed to generate new quiz:", error);
+    } finally {
+      setIsGeneratingNew(false);
+    }
   };
 
   const calculateScore = () => {
@@ -182,10 +210,22 @@ const QuizTab: React.FC<QuizTabProps> = ({ document }) => {
           })}
         </div>
 
-        <div className="text-center">
-          <Button onClick={handleRestart} className="px-6">
+        <div className="flex justify-center gap-4">
+          <Button onClick={handleRestart} variant="outline" className="px-6">
             <RotateCcw className="mr-2 h-4 w-4" />
             Retake Quiz
+          </Button>
+          <Button
+            onClick={handleGenerateNew}
+            disabled={isGeneratingNew}
+            className="px-6"
+          >
+            {isGeneratingNew ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {isGeneratingNew ? "Generating..." : "Generate New"}
           </Button>
         </div>
       </div>

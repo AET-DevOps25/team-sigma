@@ -105,6 +105,12 @@ services:
           secretKeyRef:
             name: openai-secret
             key: api-key
+  - name: quiz-service
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
+    image: ghcr.io/aet-devops25/team-sigma/quiz-service:latest
   - name: lecture-service
     ports:
       - name: http

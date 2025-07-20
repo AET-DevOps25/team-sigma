@@ -2,12 +2,19 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as ecs_patterns from "aws-cdk-lib/aws-ecs-patterns";
+// Static client will be hosted on S3 + CloudFront instead of Fargate; remove ecs_patterns.
+import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as cloudfrontOrigins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as ecr_assets from "aws-cdk-lib/aws-ecr-assets";
 import * as path from "path";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
+import * as apigwv2Integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import * as logs from "aws-cdk-lib/aws-logs";
+import * as apigw from "aws-cdk-lib/aws-apigateway";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 // Path to repository root (three levels up from this file: lib -> cdk -> infra -> team-sigma root)
@@ -139,17 +146,17 @@ export class CdkStack extends cdk.Stack {
       containerPort: number,
       environment?: { [key: string]: string },
       secrets?: { [key: string]: ecs.Secret },
-    ) => {
+    ): ecs.FargateService => {
       const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
-        memoryLimitMiB: 512, // lowest allowed for 0.25 vCPU
-        cpu: 256, // 0.25 vCPU (cheapest)
+        memoryLimitMiB: 512,
+        cpu: 256,
         runtimePlatform: {
           cpuArchitecture: ecs.CpuArchitecture.X86_64,
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         },
       });
 
-      taskDef.addContainer(`${id}Container`, {
+      const container = taskDef.addContainer(`${id}Container`, {
         image: containerImage,
         containerName: id.toLowerCase(),
         portMappings: [{ containerPort }],
@@ -158,117 +165,38 @@ export class CdkStack extends cdk.Stack {
         logging: ecs.LogDrivers.awsLogs({ streamPrefix: id.toLowerCase() }),
       });
 
-      new ecs.FargateService(this, `${id}Service`, {
+      const service = new ecs.FargateService(this, `${id}Service`, {
         cluster,
         taskDefinition: taskDef,
         desiredCount: 1,
         serviceName: id.toLowerCase(),
         securityGroups: [internalServicesSecurityGroup],
-        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }, // Move to private subnets for DNS resolution
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
         capacityProviderStrategies: [
-          { capacityProvider: "FARGATE_SPOT", weight: 1 }, // use spot pricing
+          { capacityProvider: "FARGATE_SPOT", weight: 1 },
         ],
-        minHealthyPercent: 0, // don't spin up extra tasks during deploys
+        minHealthyPercent: 0,
         cloudMapOptions: {
           name: id.toLowerCase(),
+          dnsRecordType: cdk.aws_servicediscovery.DnsRecordType.SRV,
+          container,
+          containerPort,
         },
       });
 
       // Grant S3 access to task role
       documentBucket.grantReadWrite(taskDef.taskRole);
-      
+
       // Grant access to database secret
       if (database.secret) {
         database.secret.grantRead(taskDef.taskRole);
       }
+
+      return service;
     };
 
-    // 3. API Gateway (public, behind ALB)
-    const apiGatewayImage = ecs.ContainerImage.fromAsset(
-      path.join(REPO_ROOT, "server", "api-gateway"),
-      {
-        platform: ecr_assets.Platform.LINUX_AMD64,
-      }
-    );
-
-    const apiGatewayService =
-      new ecs_patterns.ApplicationLoadBalancedFargateService(
-        this,
-        "ApiGatewayService",
-        {
-          cluster,
-          desiredCount: 1,
-          publicLoadBalancer: true,
-          securityGroups: [internalServicesSecurityGroup],
-          capacityProviderStrategies: [
-            { capacityProvider: "FARGATE_SPOT", weight: 1 },
-          ],
-          minHealthyPercent: 0,
-          memoryLimitMiB: 512,
-          cpu: 256,
-          taskImageOptions: {
-            image: apiGatewayImage,
-            containerPort: 8080,
-            environment: {
-              SPRING_APPLICATION_NAME: "api-gateway",
-              SERVER_PORT: "8080",
-            },
-          },
-        }
-      );
-
-    // Configure health check for the API Gateway
-    apiGatewayService.targetGroup.configureHealthCheck({
-      path: '/actuator/health',
-      healthyHttpCodes: '200',
-      interval: cdk.Duration.seconds(30),
-      timeout: cdk.Duration.seconds(5),
-      healthyThresholdCount: 2,
-      unhealthyThresholdCount: 3,
-    });
-
-    // Register API Gateway with service discovery manually
-    apiGatewayService.service.enableCloudMap({
-      name: 'api-gateway',
-      cloudMapNamespace: cluster.defaultCloudMapNamespace,
-    });
-
-    // // 5. Client (React SPA served via nginx, public)
-    const clientImage = ecs.ContainerImage.fromAsset(
-      path.join(REPO_ROOT, "client"),
-      {
-        platform: ecr_assets.Platform.LINUX_AMD64,
-      }
-    );
-
-    const clientService =
-      new ecs_patterns.ApplicationLoadBalancedFargateService(
-        this,
-        "ClientService",
-        {
-          cluster,
-          desiredCount: 1,
-          publicLoadBalancer: true,
-          securityGroups: [internalServicesSecurityGroup],
-          capacityProviderStrategies: [
-            { capacityProvider: "FARGATE_SPOT", weight: 1 },
-          ],
-          minHealthyPercent: 0,
-          memoryLimitMiB: 512,
-          cpu: 256,
-          taskImageOptions: {
-            image: clientImage,
-            containerPort: 80,
-            environment: {
-              API_GATEWAY_URL: `http://${apiGatewayService.loadBalancer.loadBalancerDnsName}`,
-            },
-          },
-        }
-      );
-
-    // Removed Eureka Service Registry – relying on AWS Cloud Map for service discovery
-    // 5. Remaining internal microservices (document, chat, lecture, weaviate)
-    createInternalService(
+    // 3. Internal microservices (document, chat, summary, lecture, weaviate)
+    const documentService = createInternalService(
       "DocumentService",
       ecs.ContainerImage.fromAsset(
         path.join(REPO_ROOT, "server", "document-service"),
@@ -276,20 +204,18 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8080,
+      80,
       {
         SPRING_APPLICATION_NAME: "document-service",
-        SERVER_PORT: "8080",
-        WEAVIATE_URL: "http://weaviate:8080",
-        // S3 configuration
+        SERVER_PORT: "80",
+        WEAVIATE_URL: "http://weaviate",
         AWS_REGION: this.region,
+        STORAGE_TYPE: "s3",
         S3_BUCKET_NAME: documentBucket.bucketName,
-        // Database host and name
         POSTGRES_HOST: database.instanceEndpoint.hostname,
         POSTGRES_PORT: database.instanceEndpoint.port.toString(),
         POSTGRES_DB: 'teamsgima',
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
-        // Removed Eureka configuration
       },
       {
         POSTGRES_USER: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
@@ -297,7 +223,7 @@ export class CdkStack extends cdk.Stack {
       }
     );
 
-    createInternalService(
+    const chatService = createInternalService(
       "ChatService",
       ecs.ContainerImage.fromAsset(
         path.join(REPO_ROOT, "server", "chat-service"),
@@ -305,17 +231,16 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8082,
+      80,
       {
         SPRING_APPLICATION_NAME: "chat-service",
-        SERVER_PORT: "8082",
+        SERVER_PORT: "80",
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
-        // Removed Eureka configuration
       }
     );
 
-    createInternalService(
+    const summaryService = createInternalService(
       "SummaryService",
       ecs.ContainerImage.fromAsset(
         path.join(REPO_ROOT, "server", "summary-service"),
@@ -323,17 +248,16 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8084,
+      80,
       {
         SPRING_APPLICATION_NAME: "summary-service",
-        SERVER_PORT: "8084",
+        SERVER_PORT: "80",
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
-        // Removed Eureka configuration
       }
     );
 
-    createInternalService(
+    const lectureService = createInternalService(
       "LectureService",
       ecs.ContainerImage.fromAsset(
         path.join(REPO_ROOT, "server", "lecture-service"),
@@ -341,14 +265,13 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8083,
+      80,
       {
         SPRING_APPLICATION_NAME: "lecture-service",
-        SERVER_PORT: "8083",
+        SERVER_PORT: "80",
         POSTGRES_HOST: database.instanceEndpoint.hostname,
         POSTGRES_PORT: database.instanceEndpoint.port.toString(),
         POSTGRES_DB: 'teamsgima',
-        // Removed Eureka configuration
       },
       {
         POSTGRES_USER: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
@@ -356,12 +279,12 @@ export class CdkStack extends cdk.Stack {
       }
     );
 
-    createInternalService(
+    const weaviateService = createInternalService(
       "Weaviate",
       ecs.ContainerImage.fromRegistry(
         "cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730"
       ),
-      8080,
+      80,
       {
         QUERY_DEFAULTS_LIMIT: "25",
         AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true",
@@ -372,6 +295,204 @@ export class CdkStack extends cdk.Stack {
         CLUSTER_HOSTNAME: "node1",
       }
     );
+
+    // 4. Managed AWS HTTP API Gateway replacing the nginx-based gateway
+    const httpApi = new apigwv2.HttpApi(this, 'TeamSigmaHttpApi', {
+      apiName: 'team-sigma-http-api',
+      description: 'HTTP API Gateway for Team Sigma services',
+      corsPreflight: {
+        allowHeaders: ['*'],
+        allowMethods: [apigwv2.CorsHttpMethod.ANY],
+        allowOrigins: ['*'],
+      },
+      createDefaultStage: false,
+    });
+
+    // Access logging setup
+    const accessLogGroup = new logs.LogGroup(this, 'HttpApiAccessLogs');
+
+    const defaultStage = new apigwv2.HttpStage(this, 'DefaultStage', {
+      httpApi,
+      stageName: '$default',
+      autoDeploy: true,
+      accessLogSettings: {
+        destination: new apigwv2.LogGroupLogDestination(accessLogGroup),
+        format: apigw.AccessLogFormat.jsonWithStandardFields({
+          ip: true,
+          caller: true,
+          user: true,
+          requestTime: true,
+          httpMethod: true,
+          resourcePath: true,
+          status: true,
+          protocol: true,
+          responseLength: true,
+        }),
+      },
+    });
+
+    // VPC Link that allows the HTTP API to reach private ECS services
+    const vpcLink = new apigwv2.VpcLink(this, 'InternalServicesVpcLink', {
+      vpc,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      securityGroups: [internalServicesSecurityGroup],
+    });
+
+    httpApi.addRoutes({
+      path: '/api/documents/{proxy+}',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'DocumentIntegration',
+        documentService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/documents',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'DocumentRootIntegration',
+        documentService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/chat/{proxy+}',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'ChatIntegration',
+        chatService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/chat',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'ChatRootIntegration',
+        chatService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/summary/{proxy+}',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'SummaryIntegration',
+        summaryService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/summary',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'SummaryRootIntegration',
+        summaryService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/lectures/{proxy+}',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'LectureIntegration',
+        lectureService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    // Route for requests to /api/lectures without additional path segments (e.g. POST /api/lectures)
+    httpApi.addRoutes({
+      path: '/api/lectures',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'LectureRootIntegration',
+        lectureService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/weaviate/{proxy+}',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'WeaviateIntegration',
+        weaviateService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/weaviate',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'WeaviateRootIntegration',
+        weaviateService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    // 5. Client static website hosted on S3 and served through CloudFront
+    const clientBucket = new s3.Bucket(this, 'ClientBucket', {
+      bucketName: `team-sigma-client-${this.account}-${this.region}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test
+      autoDeleteObjects: true, // for dev/test
+    });
+
+    // Allow CloudFront to access the bucket
+    const oai = new cloudfront.OriginAccessIdentity(this, 'ClientOAI');
+    clientBucket.grantRead(oai);
+
+    // Extract the API Gateway domain (strip protocol and path)
+    const apiDomain = cdk.Fn.select(2, cdk.Fn.split('/', httpApi.apiEndpoint));
+
+    const distribution = new cloudfront.Distribution(this, 'ClientDistribution', {
+      defaultRootObject: 'index.html',
+      defaultBehavior: {
+        origin: new cloudfrontOrigins.S3Origin(clientBucket, {
+          originAccessIdentity: oai,
+        }),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+      errorResponses: [
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
+        },
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
+        },
+      ],
+      additionalBehaviors: {
+        'api/*': {
+          origin: new cloudfrontOrigins.HttpOrigin(apiDomain),
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+        },
+      },
+    });
+
+    // Deploy the built client assets to S3 (ensure `client/dist` exists before deploy)
+    new s3deploy.BucketDeployment(this, 'DeployClient', {
+      sources: [s3deploy.Source.asset(path.join(REPO_ROOT, 'client', 'dist'))],
+      destinationBucket: clientBucket,
+      distribution,
+      distributionPaths: ['/*'],
+    });
 
     // Output the database endpoint and S3 bucket for reference
     new cdk.CfnOutput(this, 'DatabaseEndpoint', {
@@ -384,14 +505,14 @@ export class CdkStack extends cdk.Stack {
       description: 'S3 bucket for document storage',
     });
 
-    new cdk.CfnOutput(this, 'ApiGatewayUrl', {
-      value: apiGatewayService.loadBalancer.loadBalancerDnsName,
-      description: 'API Gateway Load Balancer URL',
+    new cdk.CfnOutput(this, 'HttpApiUrl', {
+      value: defaultStage.url,
+      description: 'HTTP API Gateway URL',
     });
 
-    new cdk.CfnOutput(this, 'ClientUrl', {
-      value: clientService.loadBalancer.loadBalancerDnsName,
-      description: 'Client Load Balancer URL',
+    new cdk.CfnOutput(this, 'ClientSiteUrl', {
+      value: `https://${distribution.domainName}`,
+      description: 'Client CloudFront URL',
     });
 
     // example resource

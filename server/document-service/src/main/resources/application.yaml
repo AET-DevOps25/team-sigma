@@ -51,6 +51,14 @@ minio:
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET_NAME:documents}
 
+# Storage selection
+storage:
+  type: ${STORAGE_TYPE:minio}
+
+# S3 configuration (used in AWS)
+s3:
+  bucket-name: ${S3_BUCKET_NAME:documents}
+
 # Actuator configuration for monitoring
 management:
   endpoints:

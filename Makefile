@@ -48,7 +48,6 @@ test-servers:
 	done
 
 # Convenience targets to run tests for an individual microservice
-
 test-document-service:
 	@$(MAKE) -C server/document-service test
 
@@ -56,7 +55,8 @@ test-lecture-service:
 	@$(MAKE) -C server/lecture-service test
 
 test-chat-service:
-	@cd server/chat-service && python -m pytest 2>/dev/null || echo "No tests found or pytest not configured"
+	@echo "\n===== Running tests for chat-service ====="
+	@cd server/chat-service && pip install -r requirements.txt && python -m pytest
 
 test-summary-service:
 	@echo "\n===== Running tests for summary-service ====="

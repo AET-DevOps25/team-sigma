@@ -69,10 +69,12 @@ jobs:
 
     strategy:
       matrix:
-        service: [summary-service]
+        service: [summary-service, chat-service]
         include:
           - service: summary-service
             working-directory: ./server/summary-service
+          - service: chat-service
+            working-directory: ./server/chat-service
 
     steps:
       - name: Checkout code

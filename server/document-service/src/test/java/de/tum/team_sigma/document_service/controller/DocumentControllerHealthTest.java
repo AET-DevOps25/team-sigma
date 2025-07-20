@@ -23,9 +23,9 @@ class DocumentControllerHealthTest {
     private DocumentService documentService;
 
     @Test
-    @DisplayName("GET /api/documents/ returns health string")
+    @DisplayName("GET /api/documents/health returns health string")
     void healthEndpointShouldReturnRunningString() throws Exception {
-        mockMvc.perform(get("/api/documents/"))
+        mockMvc.perform(get("/api/documents/health"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Document Service is running!"));
     }

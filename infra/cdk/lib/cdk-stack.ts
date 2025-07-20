@@ -304,7 +304,7 @@ export class CdkStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
-      path: '/documents/{proxy+}',
+      path: '/api/documents/{proxy+}',
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'DocumentIntegration',
@@ -314,7 +314,7 @@ export class CdkStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
-      path: '/chat/{proxy+}',
+      path: '/api/chat/{proxy+}',
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'ChatIntegration',
@@ -324,7 +324,7 @@ export class CdkStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
-      path: '/summary/{proxy+}',
+      path: '/api/summary/{proxy+}',
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'SummaryIntegration',
@@ -334,7 +334,7 @@ export class CdkStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
-      path: '/lecture/{proxy+}',
+      path: '/api/lectures/{proxy+}',
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'LectureIntegration',
@@ -344,7 +344,7 @@ export class CdkStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
-      path: '/weaviate/{proxy+}',
+      path: '/api/weaviate/{proxy+}',
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'WeaviateIntegration',

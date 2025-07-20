@@ -24,9 +24,9 @@ http {
         
         # Proxy api requests to our api-gateway
         location /api/ {
-            proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
-            proxy_pass ${API_GATEWAY_URL}api/;
+            # Forward to managed API Gateway; keep the original URI after /api/
+            proxy_pass ${API_GATEWAY_URL};
         }
     }
 }

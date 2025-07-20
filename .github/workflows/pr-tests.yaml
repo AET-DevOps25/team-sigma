@@ -3,6 +3,7 @@ name: PR Tests
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   client-tests:

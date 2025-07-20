@@ -112,7 +112,7 @@ jobs:
 
       - name: Restart all pods
         run: |
-          kubectl rollout restart deployment -n nemo --all
+          kubectl rollout restart deployment -n nemo
 
       - name: Verify deployment
         run: |

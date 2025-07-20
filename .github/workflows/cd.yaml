@@ -25,6 +25,7 @@ jobs:
             chat-service,
             summary-service,
             lecture-service,
+            genai-service,
           ]
         include:
           - service: client
@@ -48,7 +49,9 @@ jobs:
           - service: lecture-service
             context: ./server/lecture-service
             dockerfile: ./server/lecture-service/Dockerfile
-
+          - service: genai-service
+            context: ./server/genai-service
+            dockerfile: ./server/genai-service/Dockerfile
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -106,6 +109,10 @@ jobs:
             --namespace nemo \
             --wait \
             --timeout=5m
+
+      - name: Restart all pods
+        run: |
+          kubectl rollout restart deployment -n nemo --all
 
       - name: Verify deployment
         run: |

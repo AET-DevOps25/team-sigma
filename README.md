@@ -206,8 +206,24 @@ Alexander Steinhauer, Simon Huang
 
 ### Core Functionality
 
--
--
+- **Container Orchestration & Deployment**
+  - Kubernetes deployment using Helm charts for all microservices
+  - AWS ECS (Fargate) deployment option with CDK
+  - Docker containerization for all services
+  - Infrastructure-as-Code using AWS CDK and Helm
+
+- **CI/CD Pipeline (GitHub Actions)**
+  - Automated PR validation with Conventional Commits enforcement
+  - Automated testing for all services
+  - Container image building and publishing to GHCR
+  - Automated Kubernetes deployments
+  - Zero-downtime rolling updates
+
+- **Infrastructure Management**
+  - AWS cloud infrastructure with VPC, ECS, RDS, S3, CloudFront
+  - Kubernetes cluster management with Helm
+  - Secrets management using AWS Secrets Manager and Kubernetes secrets
+  - Load balancing and service discovery
 
 ### 13. Authentication (Clerk)
 
@@ -393,7 +409,8 @@ All endpoints are accessed through the API Gateway running on port 8080. Authent
 
 ## Monitoring and Observability
 
-Nemo implements comprehensive monitoring using Prometheus and Grafana, providing real-time observability across all microservices. It can be reached at `localhost:3001` when developing locally, or at https://nemo.student.k8s.aet.cit.tum.de/grafana.
+Nemo implements comprehensive monitoring using Prometheus and Grafana, providing real-time observability across all microservices.
+The Grafana dashboards can be accessed at `localhost:3001` when developing locally, or at https://nemo.student.k8s.aet.cit.tum.de/grafana.
 
 ### Prometheus Configuration
 

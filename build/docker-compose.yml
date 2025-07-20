@@ -47,6 +47,16 @@ services:
     networks:
       - spring-cloud-network
 
+  genai-service:
+    build:
+      context: ../server/genai-service
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - api-gateway
+    networks:
+      - spring-cloud-network
+
   lecture-service:
     build:
       context: ../server/lecture-service

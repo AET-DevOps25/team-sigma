@@ -210,6 +210,7 @@ export class CdkStack extends cdk.Stack {
         SERVER_PORT: "80",
         WEAVIATE_URL: "http://weaviate",
         AWS_REGION: this.region,
+        STORAGE_TYPE: "s3",
         S3_BUCKET_NAME: documentBucket.bucketName,
         POSTGRES_HOST: database.instanceEndpoint.hostname,
         POSTGRES_PORT: database.instanceEndpoint.port.toString(),

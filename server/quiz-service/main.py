@@ -28,6 +28,12 @@ Make sure that the whole slide is covered by the questions.
 """.strip()
 
 
+@app.get("/api/quiz/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy"}
+
+
 @app.post("/api/quiz/{document_id}")
 async def index(document_id: str) -> list[QuizQuestion]:
     document_bytes = await document_client.download_document_by_id(document_id)

@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from fastapi import FastAPI, HTTPException, status
 import httpx
@@ -12,9 +12,9 @@ class Env(BaseSettings):
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
 
 
-class GeminiGenerationPartInlineData(BaseModel):
-    mime_type: str = Field(..., alias="mimeType")
-    data: str = Field(..., alias="data")
+class GeminiGenerationPartInlineDataData(BaseModel):
+    mime_type: str = Field(..., serialization_alias="mimeType")
+    data: str = Field(..., serialization_alias="data")
 
 
 # Pydantic models for Gemini API structures
@@ -23,7 +23,9 @@ class GeminiGenerationPartText(BaseModel):
 
 
 class GeminiGenerationPartInlineData(BaseModel):
-    inline_data: GeminiGenerationPartInlineData = Field(..., alias="inlineData")
+    inline_data: GeminiGenerationPartInlineDataData = Field(
+        ..., serialization_alias="inlineData"
+    )
 
 
 class GeminiGenerationContent(BaseModel):
@@ -31,13 +33,16 @@ class GeminiGenerationContent(BaseModel):
 
 
 class GeminiGenerationConfig(BaseModel):
-    temperature: float = Field(default=1.0)
+    temperature: float
 
 
 class GeminiGenerationRequest(BaseModel):
     contents: List[GeminiGenerationContent]
+    system_instruction: GeminiGenerationContent | None = Field(
+        ..., serialization_alias="systemInstruction"
+    )
     generation_config: GeminiGenerationConfig = Field(
-        default=GeminiGenerationConfig(), alias="generationConfig"
+        ..., serialization_alias="generationConfig"
     )
 
 
@@ -50,7 +55,10 @@ class GeminiGenerationResponse(BaseModel):
 
 
 class GenerateContentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     contents: List[GeminiGenerationContent]
+    system_prompt: str | None = Field(default=None)
     model: str = Field(default="gemini-2.5-flash-lite-preview-06-17")
     temperature: float = Field(default=1.0)
 
@@ -77,13 +85,23 @@ app = FastAPI()
 async def generate_content(request: GenerateContentRequest) -> GenerateContentResponse:
     gemini_request = GeminiGenerationRequest(
         contents=request.contents,
+        system_instruction=GeminiGenerationContent(
+            parts=[
+                GeminiGenerationPartText(
+                    text=request.system_prompt or "You are a helpful AI assistant."
+                )
+            ]
+        ),
         generation_config=GeminiGenerationConfig(temperature=request.temperature),
     )
 
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{request.model}:generateContent"
 
-        response = await gemini_client.post(url, content=gemini_request.json())
+        response = await gemini_client.post(
+            url,
+            content=gemini_request.model_dump_json(exclude_none=True, by_alias=True),
+        )
 
         if response.status_code != 200:
             raise HTTPException(

@@ -18,6 +18,9 @@ http {
     server {
         listen 80;
 
+        # Set high upload limit for documents/slides
+        client_max_body_size 100M;
+
         # Health check endpoint
         location /health {
             add_header Content-Type text/plain;

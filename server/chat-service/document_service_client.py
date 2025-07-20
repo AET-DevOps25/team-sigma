@@ -16,9 +16,11 @@ class DocumentServiceClient:
     async def get_document_by_id(self, document_id: str) -> Optional[DocumentModel]:
         try:
             logger.info(f"Fetching document with ID: {document_id}")
-            response = await self.http_client.get(
-                f"http://{self.service_name}/api/documents/{document_id}"
-            )
+            response = (
+                await self.http_client.get(
+                    f"http://{self.service_name}/api/documents/{document_id}"
+                )
+            ).json()
 
             if response:
                 python_document_data = {
@@ -55,9 +57,11 @@ class DocumentServiceClient:
                 f"Searching similar documents for query: '{query}' with limit: {limit}"
             )
 
-            response = await self.http_client.get(
-                f"http://{self.service_name}/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
-            )
+            response = (
+                await self.http_client.get(
+                    f"http://{self.service_name}/api/documents/search/similar?q={quote_plus(query)}&limit={limit}"
+                )
+            ).json()
 
             if response:
                 chunks = []
@@ -106,10 +110,12 @@ class DocumentServiceClient:
             logger.info(f"Adding {message_type} message to document {document_id}")
             request_body = {"messageType": message_type, "content": content}
 
-            response = await self.http_client.post(
-                f"http://{self.service_name}/api/documents/{document_id}/conversation",
-                json=request_body,
-            )
+            response = (
+                await self.http_client.post(
+                    f"http://{self.service_name}/api/documents/{document_id}/conversation",
+                    json=request_body,
+                )
+            ).json()
 
             if response:
                 logger.info(

@@ -11,6 +11,9 @@ http {
     server {
         listen 80;
         
+        # Set high upload limit for documents/slides
+        client_max_body_size 100M;
+        
         location / {
             root /usr/share/nginx/html;
             index index.html index.htm;

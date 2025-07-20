@@ -6,3 +6,5 @@ build/data/postgres
 build/data/weaviate
 build/data/grafana
 build/data/prometheus
+__pycache__/
+.venv/

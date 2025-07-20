@@ -1,12 +1,19 @@
-from http.client import HTTPException
+# noqa: D104
 import uuid
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from document_service_client import DocumentServiceClient
 from genai_client import GenaiClient
 from pydantic import RootModel
 from models import LLMQuizQuestion, QuizQuestion
 
-app = FastAPI()
+app = FastAPI(
+    title="Quiz Service",
+    description="Generates quiz questions for documents using GenAI",
+    version="1.0.0",
+    openapi_url="/api/quiz/openapi.json",
+    docs_url="/api/quiz/swagger-ui.html",
+    redoc_url="/api/quiz/redoc",
+)
 
 document_client = DocumentServiceClient()
 genai_client = GenaiClient()

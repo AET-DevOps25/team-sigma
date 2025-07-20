@@ -84,7 +84,14 @@ def _create_gemini_client(env: Env) -> httpx.AsyncClient:
 # Initialize application
 env = Env()
 gemini_client = _create_gemini_client(env)
-app = FastAPI()
+app = FastAPI(
+    title="GenAI Service",
+    description="Service that wraps Google Gemini models for content generation",
+    version="1.0.0",
+    openapi_url="/api/genai/openapi.json",
+    docs_url="/api/genai/swagger-ui.html",
+    redoc_url="/api/genai/redoc",
+)
 
 
 @app.post("/api/genai/generate-content")

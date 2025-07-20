@@ -261,14 +261,21 @@ http://localhost:8080/api/documents/swagger-ui/index.html
 - `DELETE /api/lectures/{id}` - Delete lecture
 - `GET /api/lectures` - Get all lectures
 
+## GenAI Service (`/api/genai`)
+http://localhost:8080/api/genai/swagger-ui.html
+
+TODO: @alex
+
 ## Chat Service (`/api/chat`)
 
+http://localhost:8080/api/chat/swagger-ui.html
 - `GET /api/chat/health` - Health check endpoint
 - `POST /api/chat` - Send a message and get AI response
   - Request body: `{ "message": string, "document_id"?: string }`
 - `GET /api/documents/{document_id}` - Get document information
 
 ## Summary Service (`/api/summary`)
+http://localhost:8080/api/summary/swagger-ui.html
 
 - `GET /api/summary/health` - Health check endpoint
 - `POST /api/summary` - Generate document summary
@@ -277,6 +284,7 @@ http://localhost:8080/api/documents/swagger-ui/index.html
 
 ## Quiz Service (`/api/quiz`)
 
+http://localhost:8080/api/quiz/swagger-ui.html
 - `GET /api/quiz/health` - Health check endpoint
 - `POST /api/quiz/generate` - Generate quiz questions for a document
   - Request body: `{ "document_id": string }`

@@ -21,6 +21,9 @@ app = FastAPI(
     title="Chat Service",
     description="AI-powered chat service for document Q&A using RAG. Supports both general document search and document-specific queries.",
     version="1.0.0",
+    openapi_url="/api/chat/openapi.json",
+    docs_url="/api/chat/swagger-ui.html",
+    redoc_url="/api/chat/redoc",
 )
 
 app.add_middleware(

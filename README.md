@@ -238,6 +238,8 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Document Service (`/api/documents`)
 
+[Swagger UI](http://localhost:8080/api/documents/swagger-ui/index.html)
+
 - `GET /api/documents/` - Get all documents (optional `lectureId` query param)
 - `POST /api/documents/upload` - Upload a new document (multipart form data)
 - `GET /api/documents/{id}` - Get document by ID
@@ -252,6 +254,8 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Lecture Service (`/api/lectures`)
 
+[Swagger UI](http://localhost:8080/api/lectures/swagger-ui.html)
+
 - `GET /api/lectures/health` - Health check endpoint
 - `POST /api/lectures` - Create a new lecture
 - `GET /api/lectures/user/{userId}` - Get lectures by user ID
@@ -260,7 +264,17 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 - `DELETE /api/lectures/{id}` - Delete lecture
 - `GET /api/lectures` - Get all lectures
 
+## GenAI Service (`/api/genai`)
+
+[Swagger UI](http://localhost:8080/api/genai/swagger-ui.html)
+
+- `POST /api/genai/generate-content` - Generate content using Google Gemini models
+  - Request body: `GenerateContentRequest`
+  - Returns generated content in `GenerateContentResponse`
+
 ## Chat Service (`/api/chat`)
+
+[Swagger UI](http://localhost:8080/api/chat/swagger-ui.html)
 
 - `GET /api/chat/health` - Health check endpoint
 - `POST /api/chat` - Send a message and get AI response
@@ -269,6 +283,8 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Summary Service (`/api/summary`)
 
+[Swagger UI](http://localhost:8080/api/summary/swagger-ui.html)
+
 - `GET /api/summary/health` - Health check endpoint
 - `POST /api/summary` - Generate document summary
   - Request body: `{ "document_id": string }`
@@ -276,10 +292,11 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Quiz Service (`/api/quiz`)
 
-- `GET /api/quiz/health` - Health check endpoint
-- `POST /api/quiz/generate` - Generate quiz questions for a document
-  - Request body: `{ "document_id": string }`
-  - Returns AI-generated quiz questions based on document content
+[Swagger UI](http://localhost:8080/api/quiz/swagger-ui.html)
+
+- `POST /api/quiz/{document_id}` - Generate quiz questions for a document
+  - Path parameter: `document_id` (string)
+  - Returns a list of `QuizQuestion` objects generated from the document
 
 All endpoints are accessed through the API Gateway running on port 8080. Authentication is handled via Clerk, and appropriate authentication headers must be included with requests.
 

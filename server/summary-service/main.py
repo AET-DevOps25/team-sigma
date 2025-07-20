@@ -21,6 +21,9 @@ app = FastAPI(
     title="Summary Service",
     description="AI-powered summary service for generating document summaries and insights",
     version="1.0.0",
+    openapi_url="/api/summary/openapi.json",
+    docs_url="/api/summary/swagger-ui.html",
+    redoc_url="/api/summary/redoc",
 )
 
 app.add_middleware(

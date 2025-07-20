@@ -45,7 +45,11 @@ SUMMARY:"""
 
 class SummaryService:
     def __init__(self):
-        self.genai_client = GenaiClient()
+        try:
+            self.genai_client = GenaiClient()
+        except Exception as e:
+            logger.error(f"Failed to initialize GenAI client: {str(e)}")
+            self.genai_client = None
 
     async def generate_document_summary(
         self, document_name: str, chunks: List[DocumentChunkModel]
@@ -55,7 +59,7 @@ class SummaryService:
                 model="gpt-3.5-turbo", status="failed"
             ).inc()
             raise HTTPException(
-                status_code=500,
+                status_code=503,
                 detail="Summary service temporarily unavailable. Please try again later.",
             )
 
@@ -89,7 +93,6 @@ class SummaryService:
                 messages=[user_message], system_prompt=system_prompt, temperature=0.1
             )
 
-            # Track token usage (if available)
             if hasattr(response, "usage") and response.usage:
                 ai_summary_tokens_used.labels(
                     model=model_name, token_type="prompt"
@@ -101,9 +104,7 @@ class SummaryService:
                     response.usage.total_tokens
                 )
 
-            # Track successful request
             ai_summary_requests_total.labels(model=model_name, status="success").inc()
-
             logger.info(
                 f"AI summary request completed - Model: {model_name}, Document: {document_name}, Chunks: {len(chunks)}"
             )
@@ -111,9 +112,7 @@ class SummaryService:
             return response["content"]["parts"][0]["text"]
 
         except Exception as e:
-            # Track failed request
             ai_summary_requests_total.labels(model=model_name, status="failed").inc()
-
             logger.error(
                 f"Error generating AI summary for document {document_name}: {str(e)}"
             )

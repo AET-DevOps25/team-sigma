@@ -59,4 +59,5 @@ test-chat-service:
 	@cd server/chat-service && python -m pytest 2>/dev/null || echo "No tests found or pytest not configured"
 
 test-summary-service:
-	@cd server/summary-service && python -m pytest 2>/dev/null || echo "No tests found or pytest not configured"
+	@echo "\n===== Running tests for summary-service ====="
+	@cd server/summary-service && pip install -r requirements.txt && python -m pytest

@@ -212,9 +212,6 @@ export class CdkStack extends cdk.Stack {
             environment: {
               SPRING_APPLICATION_NAME: "api-gateway",
               SERVER_PORT: "8080",
-              // Eureka configuration
-              EUREKA_CLIENT_ENABLED: "true",
-              EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
             },
           },
         }
@@ -269,25 +266,7 @@ export class CdkStack extends cdk.Stack {
         }
       );
 
-    // 4. Eureka Service Registry
-    createInternalService(
-      "Eureka",
-      ecs.ContainerImage.fromAsset(
-        path.join(REPO_ROOT, "server", "eureka"),
-        {
-          platform: ecr_assets.Platform.LINUX_AMD64,
-        }
-      ),
-      8761,
-      {
-        SPRING_APPLICATION_NAME: "eureka",
-        SERVER_PORT: "8761",
-        EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false",
-        EUREKA_CLIENT_FETCH_REGISTRY: "false",
-        EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false",
-      }
-    );
-
+    // Removed Eureka Service Registry – relying on AWS Cloud Map for service discovery
     // 5. Remaining internal microservices (document, chat, lecture, weaviate)
     createInternalService(
       "DocumentService",
@@ -310,8 +289,7 @@ export class CdkStack extends cdk.Stack {
         POSTGRES_PORT: database.instanceEndpoint.port.toString(),
         POSTGRES_DB: 'teamsgima',
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
-        // Eureka configuration
-        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
+        // Removed Eureka configuration
       },
       {
         POSTGRES_USER: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
@@ -333,8 +311,7 @@ export class CdkStack extends cdk.Stack {
         SERVER_PORT: "8082",
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
-        // Eureka configuration
-        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
+        // Removed Eureka configuration
       }
     );
 
@@ -352,8 +329,7 @@ export class CdkStack extends cdk.Stack {
         SERVER_PORT: "8084",
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
-        // Eureka configuration
-        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
+        // Removed Eureka configuration
       }
     );
 
@@ -372,8 +348,7 @@ export class CdkStack extends cdk.Stack {
         POSTGRES_HOST: database.instanceEndpoint.hostname,
         POSTGRES_PORT: database.instanceEndpoint.port.toString(),
         POSTGRES_DB: 'teamsgima',
-        // Eureka configuration
-        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka.team-sigma.local:8761/eureka",
+        // Removed Eureka configuration
       },
       {
         POSTGRES_USER: ecs.Secret.fromSecretsManager(database.secret!, 'username'),

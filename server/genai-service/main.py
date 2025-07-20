@@ -96,7 +96,7 @@ app = FastAPI(
 
 @app.get("/api/genai/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "service": "genai-service"}
 
 
 @app.post("/api/genai/generate-content")

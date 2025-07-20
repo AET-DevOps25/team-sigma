@@ -39,7 +39,7 @@ public class DocumentController {
     @Autowired
     private DocumentService documentService;
 
-    @GetMapping("/")
+    @GetMapping("/health")
     @Operation(summary = "Health check", description = "Check if the document service is running")
     @ApiResponse(responseCode = "200", description = "Service is running")
     public ResponseEntity<String> health() {

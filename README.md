@@ -590,20 +590,42 @@ This command uses Docker Compose to start all the necessary services:
   - Prometheus - Metrics collection (port 9090)
   - Grafana - Metrics visualization (port 3001)
 
-## Application Screenshots
+# Tests
+To run specific microservice tests, you can execute one of the following commands:
+```
+make test-summary-service
+make test-chat-service
+make test-lecture-service
+make test-document-service
+make test-genai-service
+```
 
+To run all microservices tests, tyou can execute one of the following commands:
+```
+make test-servers
+```
+
+To run client tests, execute this command:
+```
+make test-client
+```
+
+To run both client and microservices tests, execute this command:
+```
+test
+```
+
+More information can be found inside the `Makefile`.
+
+# Application Screenshots
 ### Lectures
-
 ![Lectures](docs/readme/application-screenshots/lectures.png)
 
 ### Documents
-
 ![Documents](docs/readme/application-screenshots/documents.png)
 
 ### Summary Tab
-
 ![Documents](docs/readme/application-screenshots/summary.png)
 
 ### Chat Tab
-
 ![Documents](docs/readme/application-screenshots/chat.png)

@@ -1,10 +1,36 @@
+# OS-specific
 .DS_Store
 *.local
+
+# Environment files
 .env
-build/data/minio
-build/data/postgres
-build/data/weaviate
-build/data/grafana
-build/data/prometheus
+
+# Python
 __pycache__/
 .venv/
+.pytest_cache/
+
+# Gradle
+.gradle/
+build/
+!**/src/main/**/build.gradle  # keep only actual build.gradle files if needed
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+
+# Test Reports & Results
+*.bin
+*.lock
+*.class
+*.html
+*.xml
+*.js
+*.css
+
+# Specific build/data folders
+build/data/minio/
+build/data/postgres/
+build/data/weaviate/
+build/data/grafana/
+build/data/prometheus/

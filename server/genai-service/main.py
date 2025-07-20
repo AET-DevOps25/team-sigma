@@ -87,6 +87,11 @@ gemini_client = _create_gemini_client(env)
 app = FastAPI()
 
 
+@app.get("/api/genai/health")
+async def health_check():
+    return {"status": "healthy"}
+
+
 @app.post("/api/genai/generate-content")
 async def generate_content(request: GenerateContentRequest) -> GenerateContentResponse:
     gemini_request = GeminiGenerationRequest(

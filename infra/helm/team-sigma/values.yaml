@@ -73,6 +73,18 @@ services:
           secretKeyRef:
             name: openai-secret
             key: api-key
+  - name: genai-service
+    ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
+    image: ghcr.io/aet-devops25/team-sigma/genai-service:latest
+    env:
+      - name: GEMINI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: gemini-secret
+            key: api-key
   - name: summary-service
     ports:
       - name: http

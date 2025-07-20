@@ -9,6 +9,7 @@ http {
     map $service_name $backend {
         chat        chat-service;
         documents   document-service;
+        genai       genai-service;
         lectures    lecture-service;
         quiz        quiz-service;
         summary     summary-service;
@@ -24,7 +25,7 @@ http {
         }
 
         # Generic service proxy with path rewriting
-        location ~ ^/api/(chat|documents|lectures|quiz|summary)(/.*)?$ {
+        location ~ ^/api/(chat|documents|genai|lectures|quiz|summary)(/.*)?$ {
             set $service_name $1;
             
             proxy_pass http://${backend}${SEARCH_SUFFIX};

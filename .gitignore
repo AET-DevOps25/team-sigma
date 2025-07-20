@@ -34,3 +34,7 @@ build/data/postgres/
 build/data/weaviate/
 build/data/grafana/
 build/data/prometheus/
+
+# Helm build artifacts
+infra/helm/team-sigma/dashboards/
+infra/helm/team-sigma/prometheus/

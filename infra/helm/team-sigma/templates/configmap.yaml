@@ -18,3 +18,67 @@ data:
     EOSQL
 
     echo "Multiple databases created successfully!"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning-dashboards
+data:
+  dashboard.yml: |
+    apiVersion: 1
+
+    providers:
+      - name: 'default'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning-datasources
+data:
+  datasource.yml: |
+    apiVersion: 1
+
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        uid: dersgbccgre2oa
+        isDefault: true
+        editable: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+data:
+  health.json: |
+{{ .Files.Get "dashboards/health.json" | nindent 4 }}
+  http_requests.json: |
+{{ .Files.Get "dashboards/http_requests.json" | nindent 4 }}
+  ai_usage.json: |
+{{ .Files.Get "dashboards/ai_usage.json" | nindent 4 }}
+  exceptions.json: |
+{{ .Files.Get "dashboards/exceptions.json" | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yml: |
+{{ .Files.Get "prometheus/prometheus.yml" | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+data:
+  exception_rules.yml: |
+{{ .Files.Get "prometheus/exception_rules.yml" | nindent 4 }}

@@ -742,3 +742,7 @@ More information can be found inside the `Makefile`.
 ### Chat Tab
 
 ![Documents](docs/readme/application-screenshots/chat.png)
+
+### Quiz Tab
+
+![Quiz](docs/readme/application-screenshots/quiz.jpeg)

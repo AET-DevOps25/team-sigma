@@ -330,6 +330,10 @@ This class diagram shows the relationships between objects in the application
 This diagram shows the top level architecture
 ![Top Level Architecture](docs/diagrams/top-level-architecture.svg)
 
+#### Analysis Object Model
+This diagram shows the analysis object model
+![Top Level Architecture](docs/diagrams/aom.png)
+
 # Setup Instructions for Local Development
 ## Prerequisites
 

@@ -3,24 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 import logging
-import openai
-from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 from models import SummaryRequest, SummaryResponse
 from summary_service import SummaryService
 from document_service_client import DocumentServiceClient
-
-load_dotenv(dotenv_path="../../.env")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SERVICE_NAME = os.getenv("SPRING_APPLICATION_NAME", "summary-service")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "80"))
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
-if not openai.api_key:
-    logger.warning("OPENAI_API_KEY not set. Summary functionality will be limited.")
 
 document_client = DocumentServiceClient()
 summary_service = SummaryService()

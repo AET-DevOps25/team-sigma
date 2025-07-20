@@ -18,9 +18,11 @@ class DocumentServiceClient:
         try:
             logger.info(f"Fetching all chunks for document ID: {document_id}")
 
-            response = await self.http_client.get(
-                f"http://{self.service_name}/api/documents/{document_id}/chunks"
-            )
+            response = (
+                await self.http_client.get(
+                    f"http://{self.service_name}/api/documents/{document_id}/chunks"
+                )
+            ).json()
 
             if response:
                 chunks = []

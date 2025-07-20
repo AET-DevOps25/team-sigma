@@ -3,24 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 import logging
-import openai
-from dotenv import load_dotenv
 from models import ChatRequest, ChatResponse
 from chat_service import ChatService
 from document_service_client import DocumentServiceClient
 from prometheus_fastapi_instrumentator import Instrumentator
-
-load_dotenv(dotenv_path="../../.env")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SERVICE_NAME = os.getenv("SPRING_APPLICATION_NAME", "chat-service")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "80"))
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
-if not openai.api_key:
-    logger.warning("OPENAI_API_KEY not set. RAG functionality will be limited.")
 
 document_client = DocumentServiceClient()
 chat_service = ChatService()

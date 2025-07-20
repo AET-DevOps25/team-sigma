@@ -2,7 +2,10 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as ecs_patterns from "aws-cdk-lib/aws-ecs-patterns";
+// Static client will be hosted on S3 + CloudFront instead of Fargate; remove ecs_patterns.
+import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as cloudfrontOrigins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as ecr_assets from "aws-cdk-lib/aws-ecr-assets";
 import * as path from "path";
 import * as rds from "aws-cdk-lib/aws-rds";
@@ -153,7 +156,7 @@ export class CdkStack extends cdk.Stack {
         },
       });
 
-      taskDef.addContainer(`${id}Container`, {
+      const container = taskDef.addContainer(`${id}Container`, {
         image: containerImage,
         containerName: id.toLowerCase(),
         portMappings: [{ containerPort }],
@@ -175,6 +178,9 @@ export class CdkStack extends cdk.Stack {
         minHealthyPercent: 0,
         cloudMapOptions: {
           name: id.toLowerCase(),
+          dnsRecordType: cdk.aws_servicediscovery.DnsRecordType.SRV,
+          container,
+          containerPort,
         },
       });
 
@@ -304,7 +310,7 @@ export class CdkStack extends cdk.Stack {
     // Access logging setup
     const accessLogGroup = new logs.LogGroup(this, 'HttpApiAccessLogs');
 
-    new apigwv2.HttpStage(this, 'DefaultStage', {
+    const defaultStage = new apigwv2.HttpStage(this, 'DefaultStage', {
       httpApi,
       stageName: '$default',
       autoDeploy: true,
@@ -381,38 +387,60 @@ export class CdkStack extends cdk.Stack {
       ),
     });
 
-    // 5. Client (React SPA served via nginx, public)
-    const clientImage = ecs.ContainerImage.fromAsset(
-      path.join(REPO_ROOT, "client"),
-      {
-        platform: ecr_assets.Platform.LINUX_AMD64,
-      }
-    );
+    // 5. Client static website hosted on S3 and served through CloudFront
+    const clientBucket = new s3.Bucket(this, 'ClientBucket', {
+      bucketName: `team-sigma-client-${this.account}-${this.region}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // for dev/test
+      autoDeleteObjects: true, // for dev/test
+    });
 
-    const clientService =
-      new ecs_patterns.ApplicationLoadBalancedFargateService(
-        this,
-        "ClientService",
+    // Allow CloudFront to access the bucket
+    const oai = new cloudfront.OriginAccessIdentity(this, 'ClientOAI');
+    clientBucket.grantRead(oai);
+
+    // Extract the API Gateway domain (strip protocol and path)
+    const apiDomain = cdk.Fn.select(2, cdk.Fn.split('/', httpApi.apiEndpoint));
+
+    const distribution = new cloudfront.Distribution(this, 'ClientDistribution', {
+      defaultRootObject: 'index.html',
+      defaultBehavior: {
+        origin: new cloudfrontOrigins.S3Origin(clientBucket, {
+          originAccessIdentity: oai,
+        }),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+      errorResponses: [
         {
-          cluster,
-          desiredCount: 1,
-          publicLoadBalancer: true,
-          securityGroups: [internalServicesSecurityGroup],
-          capacityProviderStrategies: [
-            { capacityProvider: "FARGATE_SPOT", weight: 1 },
-          ],
-          minHealthyPercent: 0,
-          memoryLimitMiB: 512,
-          cpu: 256,
-          taskImageOptions: {
-            image: clientImage,
-            containerPort: 80,
-            environment: {
-              API_GATEWAY_URL: `${httpApi.url ?? ''}`,
-            },
-          },
-        }
-      );
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
+        },
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
+        },
+      ],
+      additionalBehaviors: {
+        'api/*': {
+          origin: new cloudfrontOrigins.HttpOrigin(apiDomain),
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+        },
+      },
+    });
+
+    // Deploy the built client assets to S3 (ensure `client/dist` exists before deploy)
+    new s3deploy.BucketDeployment(this, 'DeployClient', {
+      sources: [s3deploy.Source.asset(path.join(REPO_ROOT, 'client', 'dist'))],
+      destinationBucket: clientBucket,
+      distribution,
+      distributionPaths: ['/*'],
+    });
 
     // Output the database endpoint and S3 bucket for reference
     new cdk.CfnOutput(this, 'DatabaseEndpoint', {
@@ -426,13 +454,13 @@ export class CdkStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'HttpApiUrl', {
-      value: httpApi.url ?? '',
+      value: defaultStage.url,
       description: 'HTTP API Gateway URL',
     });
 
-    new cdk.CfnOutput(this, 'ClientUrl', {
-      value: clientService.loadBalancer.loadBalancerDnsName,
-      description: 'Client Load Balancer URL',
+    new cdk.CfnOutput(this, 'ClientSiteUrl', {
+      value: `https://${distribution.domainName}`,
+      description: 'Client CloudFront URL',
     });
 
     // example resource

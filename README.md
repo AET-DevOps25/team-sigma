@@ -138,9 +138,8 @@ Stores PDF files belonging to uploaded documents. The documents can be downloade
 Alexander Steinhauer, Simon Huang
 
 ### Core Functionality
-- a
-- a
-- a
+- 
+- 
 
 ## 13. Authentication (Clerk)
 ### Responsible Students:
@@ -148,6 +147,13 @@ Alexander Steinhauer
 
 ### Core Functionality
 Manages secure user login via email and code.
+
+## 14. Monitoring & Observability (Prometheus & Grafana)
+### Responsible Students:
+Maria Pospelova
+
+### Core Functionality
+Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions.
 
 ## Technologies
 | Component              | Technology                                |

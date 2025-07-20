@@ -143,17 +143,31 @@ Alexander Steinhauer
 
 ### Core Functionality
 
---
+**AI-Powered Quiz Generation** \
+Generates interactive quiz questions from uploaded documents using GenAI service. Each quiz question includes:
+- Multiple choice format (4 options)
+- Correct answer identification
+- Detailed explanation for the answer
+- Focus on exam-relevant content
 
-### 8. GenAI Microservice
+**Document Integration** \
+- Downloads document content via document service
+- Processes entire document to ensure comprehensive coverage
+- Maintains context while generating questions
 
+**Quality Control** \
+- Ensures questions are exam-focused and practical
+- Avoids trivial or irrelevant details
+- Provides balanced coverage of document content
+
+### 8. GenAI Microservicex
 ### Responsible Students:
-
 Alexander Steinhauer
 
 ### Core Functionality
 
---
+**Google Gemini Integration** \
+Provides a unified interface to Google's Gemini AI models. Used by chat microservice, quiz microservice, summary microservice.
 
 ### 9. Database (PostgreSQL)
 

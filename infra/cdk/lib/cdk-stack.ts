@@ -348,10 +348,30 @@ export class CdkStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
+      path: '/api/documents',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'DocumentRootIntegration',
+        documentService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
       path: '/api/chat/{proxy+}',
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'ChatIntegration',
+        chatService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/chat',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'ChatRootIntegration',
         chatService.cloudMapService!,
         { vpcLink },
       ),
@@ -368,10 +388,31 @@ export class CdkStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
+      path: '/api/summary',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'SummaryRootIntegration',
+        summaryService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
       path: '/api/lectures/{proxy+}',
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'LectureIntegration',
+        lectureService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    // Route for requests to /api/lectures without additional path segments (e.g. POST /api/lectures)
+    httpApi.addRoutes({
+      path: '/api/lectures',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'LectureRootIntegration',
         lectureService.cloudMapService!,
         { vpcLink },
       ),
@@ -382,6 +423,16 @@ export class CdkStack extends cdk.Stack {
       methods: [apigwv2.HttpMethod.ANY],
       integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
         'WeaviateIntegration',
+        weaviateService.cloudMapService!,
+        { vpcLink },
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/weaviate',
+      methods: [apigwv2.HttpMethod.ANY],
+      integration: new apigwv2Integrations.HttpServiceDiscoveryIntegration(
+        'WeaviateRootIntegration',
         weaviateService.cloudMapService!,
         { vpcLink },
       ),

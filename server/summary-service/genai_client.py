@@ -1,7 +1,6 @@
 from typing import Any
 import httpx
 
-
 class GenaiClient:
     def __init__(self):
         self.http_client = httpx.AsyncClient(timeout=60.0 * 5)

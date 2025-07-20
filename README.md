@@ -238,6 +238,8 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Document Service (`/api/documents`)
 
+[Swagger UI](http://localhost:8080/api/documents/swagger-ui/index.html)
+
 - `GET /api/documents/` - Get all documents (optional `lectureId` query param)
 - `POST /api/documents/upload` - Upload a new document (multipart form data)
 - `GET /api/documents/{id}` - Get document by ID
@@ -252,6 +254,8 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Lecture Service (`/api/lectures`)
 
+[Swagger UI](http://localhost:8080/api/lectures/swagger-ui.html)
+
 - `GET /api/lectures/health` - Health check endpoint
 - `POST /api/lectures` - Create a new lecture
 - `GET /api/lectures/user/{userId}` - Get lectures by user ID
@@ -260,7 +264,17 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 - `DELETE /api/lectures/{id}` - Delete lecture
 - `GET /api/lectures` - Get all lectures
 
+## GenAI Service (`/api/genai`)
+
+[Swagger UI](http://localhost:8080/api/genai/swagger-ui.html)
+
+- `POST /api/genai/generate-content` - Generate content using Google Gemini models
+  - Request body: `GenerateContentRequest`
+  - Returns generated content in `GenerateContentResponse`
+
 ## Chat Service (`/api/chat`)
+
+[Swagger UI](http://localhost:8080/api/chat/swagger-ui.html)
 
 - `GET /api/chat/health` - Health check endpoint
 - `POST /api/chat` - Send a message and get AI response
@@ -269,6 +283,8 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Summary Service (`/api/summary`)
 
+[Swagger UI](http://localhost:8080/api/summary/swagger-ui.html)
+
 - `GET /api/summary/health` - Health check endpoint
 - `POST /api/summary` - Generate document summary
   - Request body: `{ "document_id": string }`
@@ -276,10 +292,11 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 
 ## Quiz Service (`/api/quiz`)
 
-- `GET /api/quiz/health` - Health check endpoint
-- `POST /api/quiz/generate` - Generate quiz questions for a document
-  - Request body: `{ "document_id": string }`
-  - Returns AI-generated quiz questions based on document content
+[Swagger UI](http://localhost:8080/api/quiz/swagger-ui.html)
+
+- `POST /api/quiz/{document_id}` - Generate quiz questions for a document
+  - Path parameter: `document_id` (string)
+  - Returns a list of `QuizQuestion` objects generated from the document
 
 All endpoints are accessed through the API Gateway running on port 8080. Authentication is handled via Clerk, and appropriate authentication headers must be included with requests.
 
@@ -438,6 +455,92 @@ This diagram shows the top level architecture
 This diagram shows the analysis object model
 ![Top Level Architecture](docs/diagrams/aom.png)
 
+## Kubernetes Deployment with Helm
+
+This repository ships with a production-ready Helm chart located in `infra/helm/team-sigma`. \
+It allows you to deploy **all** micro-services, infrastructure add-ons (PostgreSQL, MinIO, Weaviate, Prometheus, Grafana) as well as the React SPA to any Kubernetes cluster in one command.
+
+### Helm Chart Structure
+
+| File/Folder                 | Purpose                                                                                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `Chart.yaml`                | Chart metadata (name, version, description).                                                                            |
+| `values.yaml`               | Central place to configure the image tags, environment variables, exposed ports, ingress host, persistent volumes, etc. |
+| `templates/deployment.yaml` | Generates a `Deployment` per service defined in `values.yaml`.                                                          |
+| `templates/service.yaml`    | Exposes each deployment internally through a `ClusterIP` service.                                                       |
+| `templates/ingress.yaml`    | Creates ingress rules (TLS-terminated via cert-manager) for components that should be reachable from the internet.      |
+| `templates/configmap.yaml`  | Provides init-scripts and other static configuration bundled as ConfigMaps.                                             |
+| `Makefile`                  | Convenience commands for installing, upgrading and troubleshooting the release.                                         |
+
+### Prerequisites
+
+1. A Kubernetes cluster (tested with k8s ≥ 1.28).
+2. `helm` ≥ 3.x installed locally.
+3. Your kube-context pointing to the cluster and **namespace `nemo`** either existing or created by Helm automatically.
+4. The container images published in GHCR (see CI/CD section) – or change `values.yaml` to reference your own registry.
+5. TLS certificates are automatically issued via [cert-manager](https://cert-manager.io/) using the `letsencrypt-prod` ClusterIssuer referenced in the ingress template. \
+   Create/adjust this ClusterIssuer in your cluster if it does not exist yet.
+
+### Deploying
+
+```bash
+# Navigate to the chart
+cd infra/helm/team-sigma
+
+# First-time install (creates namespace, waits for resources to become healthy)
+make install-prod   # equivalent to: helm install team-sigma . --namespace nemo --kube-context <ctx> --wait --timeout 5m
+```
+
+### Upgrading
+
+Whenever you push a new version of your images (or change chart templates/values):
+
+```bash
+# Pull the latest manifests & roll deployments
+make upgrade-prod   # helm upgrade team-sigma . --namespace nemo --kube-context <ctx> --wait --timeout 5m
+```
+
+### Rolling Pods
+
+```bash
+# Trigger a rolling restart of all deployments (e.g., after secret change)
+make reload-prod
+```
+
+### Cleaning Up
+
+```bash
+# DANGER: removes the entire namespace including PVCs
+make delete-prod
+```
+
+### Creating Secrets
+
+Sensitive credentials (e.g., `OPENAI_API_KEY`, `GEMINI_API_KEY`) are **not** stored in the chart. \
+Instead, pass them as key=value pairs to the `create-secrets` target which wraps `kubectl create secret generic`:
+
+```bash
+# Example – store both OpenAI & Gemini keys
+make create-secrets SECRETS="OPENAI_API_KEY=sk-xxx,GEMINI_API_KEY=gk-yyy"
+```
+
+These secrets can then be referenced inside `values.yaml` via `valueFrom.secretKeyRef`.
+
+### Customising the Deployment
+
+Most deployments can be tailored through `values.yaml` without touching the templates:
+
+- Change `host:` at the top to match your own domain or nip.io wildcard.
+- Override container image tags or entire `image:` fields.
+- Adjust resource limits, add new environment variables or mount volumes.
+- Add / remove services: simply append or delete entries in the `services:` array.
+
+After making changes, run `make upgrade-prod` to apply them.
+
+> 📘 **Tip**: For quick experiments use the `--set KEY=VALUE` flag with Helm instead of editing `values.yaml`.
+
+---
+
 ## AWS Deployment Architecture
 
 This project is deployed to AWS using the AWS Cloud Development Kit (CDK). The following services make up the production infrastructure:
@@ -590,7 +693,39 @@ This command uses Docker Compose to start all the necessary services:
   - Prometheus - Metrics collection (port 9090)
   - Grafana - Metrics visualization (port 3001)
 
-## Application Screenshots
+# Tests
+
+To run specific microservice tests, you can execute one of the following commands:
+
+```
+make test-summary-service
+make test-chat-service
+make test-lecture-service
+make test-document-service
+make test-genai-service
+```
+
+To run all microservices tests, tyou can execute one of the following commands:
+
+```
+make test-servers
+```
+
+To run client tests, execute this command:
+
+```
+make test-client
+```
+
+To run both client and microservices tests, execute this command:
+
+```
+test
+```
+
+More information can be found inside the `Makefile`.
+
+# Application Screenshots
 
 ### Lectures
 
@@ -607,3 +742,7 @@ This command uses Docker Compose to start all the necessary services:
 ### Chat Tab
 
 ![Documents](docs/readme/application-screenshots/chat.png)
+
+### Quiz Tab
+
+![Quiz](docs/readme/application-screenshots/quiz.jpeg)

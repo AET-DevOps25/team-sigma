@@ -1,6 +1,6 @@
 .PHONY: run-dev test test-servers test-client test-all \
         test-document-service test-lecture-service \
-        test-chat-service test-summary-service
+        test-chat-service test-summary-service test-genai-service
 
 run:
 	@echo "Starting Docker services..."
@@ -15,7 +15,8 @@ SERVER_SERVICES := \
 # Python services
 PYTHON_SERVICES := \
 	server/chat-service \
-	server/summary-service
+	server/summary-service \
+	server/genai-service
 
 # Client application directory (contains Vitest suite)
 CLIENT_DIR := client
@@ -48,7 +49,6 @@ test-servers:
 	done
 
 # Convenience targets to run tests for an individual microservice
-
 test-document-service:
 	@$(MAKE) -C server/document-service test
 
@@ -56,7 +56,13 @@ test-lecture-service:
 	@$(MAKE) -C server/lecture-service test
 
 test-chat-service:
-	@cd server/chat-service && python -m pytest 2>/dev/null || echo "No tests found or pytest not configured"
+	@echo "\n===== Running tests for chat-service ====="
+	@cd server/chat-service && pip install -r requirements.txt && python -m pytest
 
 test-summary-service:
-	@cd server/summary-service && python -m pytest 2>/dev/null || echo "No tests found or pytest not configured"
+	@echo "\n===== Running tests for summary-service ====="
+	@cd server/summary-service && pip install -r requirements.txt && python -m pytest
+
+test-genai-service:
+	@echo "\n===== Running tests for genai-service ====="
+	@cd server/genai-service && pip install -r requirements.txt && python -m pytest

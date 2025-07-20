@@ -4,4 +4,8 @@ pydantic==2.10.2
 requests==2.31.0
 httpx==0.25.0
 prometheus-client==0.21.0
-prometheus-fastapi-instrumentator==7.0.0 
+prometheus-fastapi-instrumentator==7.0.0
+pytest==8.0.0
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
+httpx==0.25.0 

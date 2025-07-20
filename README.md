@@ -5,13 +5,15 @@ Students can organize their materials into lectures (essentially folders), uploa
 
 ## What It Does
 The application helps students study smarter by turning their lecture content into something more interactive. It gives students a focused way to prepare without having to dig through long PDFs or take extensive notes on their own. Here’s what it offers:
-**Lecture-Based Organization**
+
+**Lecture-Based Organization** \
 Students can create lectures (which act like folders) and upload multiple documents or slide decks to each one.
-**AI Support**
+
+**AI Support** \
 Each uploaded file gets its own set of tools:
-	•	A concise summary that covers the main points.
-	•	Quiz questions generated from the content, so the students can test themselves.
-	•	A chat interface that lets the students ask questions about that document and get relevant answers from the AI.
+- A concise summary that covers the main points.
+- Quiz questions generated from the content, so the students can test themselves.
+- A chat interface that lets the students ask questions about that document and get relevant answers from the AI.
 
 ## Integration of Generative AI
 Behind the scenes, the application uses three separate Python microservices to process and work with the uploaded documents:
@@ -112,28 +114,38 @@ Combines all document chunks into a single text while preserving context and str
 ### Responsible Students:
 Alexander Steinhauer
 
-## 8. Database (PostgreSQL)
+### Core Functionality
+--
+
+## 8. GenAI Microservice
+### Responsible Students:
+Alexander Steinhauer
+
+### Core Functionality
+--
+
+## 9. Database (PostgreSQL)
 ### Responsible Students:
 Simon Huang
 
 `lecture_db`: Stores lecture objects. \
 `document_db`: Stores document metadata. Has reference to corresponding lecture. Chat conversation is stored here as well.
 
-## 9. Vector Database (Weaviate)
+## 10. Vector Database (Weaviate)
 ### Responsible Students:
 Simon Huang
 
 ### Core Functionality
 Stores embedded chunks created from uploaded PDF documents. The chunks are used by chat microservice, summary microservice, and quiz microservice.
 
-## 10. Document File Storage (Minio)
+## 11. Document File Storage (Minio)
 ### Responsible Students:
 Simon Huang
 
 ### Core Functionality
 Stores PDF files belonging to uploaded documents. The documents can be downloaded from here.
 
-## 11. DevOps
+## 12. DevOps
 ### Responsible Students:
 Alexander Steinhauer, Simon Huang
 
@@ -168,8 +180,11 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 | Database               | PostgreSQL                                |
 | Vector Database        | Weaviate                                  |
 | Document File Storage  | Minio                                     |
-| DevOps                 | Docker, Kubernetes, CI/CD (e.g. GitHub Actions) |
+| DevOps                 | Docker, Kubernetes, CI/CD, AWS |
 | Authentication         | Clerk                                     |
+| Monitoring & Observability         | Prometheus, Grafana                                     |
+| GenAI Microservice     | Python, Langchain                     |
+
 
 # API Documentation
 
@@ -356,7 +371,8 @@ cd team-sigma
 Add an OpenAI key for Weaviate, chat microservice, quiz microservice, and summary microservice to the `.env` file:
 
 ```
-export OPENAI_API_KEY=sk_xxx
+OPENAI_API_KEY=xxx
+GEMINI_API_KEY=xxx
 ```
 
 ### Client

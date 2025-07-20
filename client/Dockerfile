@@ -23,7 +23,7 @@ RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
     echo 'export DNS_SERVER=$(cat /etc/resolv.conf |grep -i "^nameserver"|head -n1|cut -d " " -f2)' >> /docker-entrypoint.sh && \
     echo 'export SEARCH_SUFFIX=$(cat /etc/resolv.conf |grep -i "^search"|head -n1|cut -d " " -f2)' >> /docker-entrypoint.sh && \
     echo 'if [ -z "$SEARCH_SUFFIX" ]; then export SEARCH_SUFFIX=""; else export SEARCH_SUFFIX=."$SEARCH_SUFFIX"; fi' >> /docker-entrypoint.sh && \
-    echo 'envsubst "\${DNS_SERVER} \${SEARCH_SUFFIX} \${API_GATEWAY_URL}" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /docker-entrypoint.sh && \
+    echo 'envsubst "\${DNS_SERVER} \${SEARCH_SUFFIX}" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /docker-entrypoint.sh && \
     echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
 

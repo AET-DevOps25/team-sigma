@@ -381,3 +381,16 @@ This command uses Docker Compose to start all the necessary services:
   - PostgreSQL - Relational database (port 5432)
   - Prometheus - Metrics collection (port 9090)
   - Grafana - Metrics visualization (port 3001)
+
+# Application Screenshots
+#### Lectures
+![Lectures](docs/readme/application-screenshots/lectures.png)
+
+#### Documents
+![Documents](docs/readme/application-screenshots/documents.png)
+
+#### Summary Tab
+![Documents](docs/readme/application-screenshots/summary.png)
+
+#### Chat Tab
+![Documents](docs/readme/application-screenshots/chat.png)

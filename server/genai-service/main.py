@@ -1,4 +1,5 @@
-from typing import List
+from asyncio.log import logger
+from typing import Any, List
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from fastapi import FastAPI, HTTPException, status
@@ -14,7 +15,7 @@ class Env(BaseSettings):
 
 class GeminiGenerationPartInlineDataData(BaseModel):
     mime_type: str = Field(..., serialization_alias="mimeType")
-    data: str = Field(..., serialization_alias="data")
+    data: str
 
 
 # Pydantic models for Gemini API structures
@@ -34,6 +35,10 @@ class GeminiGenerationContent(BaseModel):
 
 class GeminiGenerationConfig(BaseModel):
     temperature: float
+    response_mime_type: str | None = Field(..., serialization_alias="responseMimeType")
+    response_json_schema: dict[str, Any] | None = Field(
+        ..., serialization_alias="responseJsonSchema"
+    )
 
 
 class GeminiGenerationRequest(BaseModel):
@@ -61,6 +66,7 @@ class GenerateContentRequest(BaseModel):
     system_prompt: str | None = Field(default=None)
     model: str = Field(default="gemini-2.5-flash-lite-preview-06-17")
     temperature: float = Field(default=1.0)
+    response_schema: dict[str, Any] | None = Field(default=None)
 
 
 class GenerateContentResponse(BaseModel):
@@ -72,7 +78,7 @@ def _create_gemini_client(env: Env) -> httpx.AsyncClient:
         "x-goog-api-key": env.gemini_api_key,
         "Content-Type": "application/json",
     }
-    return httpx.AsyncClient(headers=headers)
+    return httpx.AsyncClient(headers=headers, timeout=60.0 * 5)
 
 
 # Initialize application
@@ -92,7 +98,11 @@ async def generate_content(request: GenerateContentRequest) -> GenerateContentRe
                 )
             ]
         ),
-        generation_config=GeminiGenerationConfig(temperature=request.temperature),
+        generation_config=GeminiGenerationConfig(
+            temperature=request.temperature,
+            response_mime_type="application/json" if request.response_schema else None,
+            response_json_schema=request.response_schema,
+        ),
     )
 
     try:
@@ -111,6 +121,7 @@ async def generate_content(request: GenerateContentRequest) -> GenerateContentRe
 
         response = GeminiGenerationResponse.model_validate_json(response.text)
         if not response.candidates:
+            logger.error("Empty response from Gemini API")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Empty response from Gemini API",
@@ -119,6 +130,7 @@ async def generate_content(request: GenerateContentRequest) -> GenerateContentRe
         return GenerateContentResponse(content=response.candidates[0].content)
 
     except Exception as e:
+        logger.error(f"Error generating content: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )

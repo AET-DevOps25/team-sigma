@@ -90,8 +90,7 @@ export interface LectureRequest {
   userId: string;
 }
 
-
-const apiUrl = env.VITE_API_GATEWAY_URL.replace(/\/$/, '');
+const apiUrl = env.VITE_API_GATEWAY_URL.replace(/\/$/, "");
 // API functions
 const api = {
   // Gateway endpoints
@@ -229,8 +228,10 @@ const api = {
   },
 
   // Quiz service endpoints
-  getQuizQuestions: async (slideId: string): Promise<QuizQuestion[]> => {
-    const response = await fetch(`${apiUrl}/api/quiz/${slideId}`);
+  getQuizQuestions: async (documentId: string): Promise<QuizQuestion[]> => {
+    const response = await fetch(`${apiUrl}/api/quiz/${documentId}`, {
+      method: "POST",
+    });
     if (!response.ok) throw new Error("Failed to fetch quiz questions");
     return response.json();
   },
@@ -486,11 +487,11 @@ export function useDocumentDownload() {
 }
 
 // Quiz hooks
-export function useQuizQuestions(slideId: string | undefined) {
+export function useQuizQuestions(documentId: string | undefined) {
   return useQuery({
-    queryKey: ["quiz", slideId],
-    queryFn: () => api.getQuizQuestions(slideId!),
-    enabled: !!slideId,
+    queryKey: ["quiz", documentId],
+    queryFn: () => api.getQuizQuestions(documentId!),
+    enabled: !!documentId,
     staleTime: 300000, // 5 minutes
   });
 }

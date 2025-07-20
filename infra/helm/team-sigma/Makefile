@@ -1,9 +1,26 @@
-@PHONY: install-infisical, install-infisical-admin, install-prod, upgrade-prod, list-prod, delete-prod, create-secret
+.PHONY: install-prod upgrade-prod list-prod delete-prod create-secrets get-secret reload-prod prepare-grafana-config prepare-prometheus-config prepare-config build-helm clean-helm
 
-install-prod:
+# Prepare Grafana configuration for Helm deployment
+prepare-grafana-config:
+	@echo "===== Preparing Grafana configuration for Helm ====="
+	@mkdir -p dashboards
+	@cp ../../../build/config/grafana/dashboards/*.json dashboards/
+	@echo "Grafana dashboard files copied to Helm chart"
+
+# Prepare Prometheus configuration for Helm deployment
+prepare-prometheus-config:
+	@echo "===== Preparing Prometheus configuration for Helm ====="
+	@mkdir -p prometheus
+	@cp ../../../build/config/prometheus/*.yml prometheus/
+	@echo "Prometheus configuration files copied to Helm chart"
+
+# Prepare all configuration files
+prepare-config: prepare-grafana-config prepare-prometheus-config
+
+install-prod: prepare-config
 	helm install team-sigma .  --namespace nemo --kube-context student --wait --timeout 5m
 
-upgrade-prod:
+upgrade-prod: prepare-config
 	helm upgrade team-sigma . --namespace nemo --kube-context student --wait --timeout 5m
 
 list-prod:

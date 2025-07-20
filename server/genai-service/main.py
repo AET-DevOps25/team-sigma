@@ -73,7 +73,7 @@ gemini_client = _create_gemini_client(env)
 app = FastAPI()
 
 
-@app.post("/generate-content")
+@app.post("/api/genai/generate-content")
 async def generate_content(request: GenerateContentRequest) -> GenerateContentResponse:
     gemini_request = GeminiGenerationRequest(
         contents=request.contents,

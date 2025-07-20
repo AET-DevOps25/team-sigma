@@ -10,6 +10,8 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import * as apigwv2Integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import * as logs from "aws-cdk-lib/aws-logs";
+import * as apigw from "aws-cdk-lib/aws-apigateway";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 // Path to repository root (three levels up from this file: lib -> cdk -> infra -> team-sigma root)
@@ -196,11 +198,11 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8080,
+      80,
       {
         SPRING_APPLICATION_NAME: "document-service",
-        SERVER_PORT: "8080",
-        WEAVIATE_URL: "http://weaviate:8080",
+        SERVER_PORT: "80",
+        WEAVIATE_URL: "http://weaviate",
         AWS_REGION: this.region,
         S3_BUCKET_NAME: documentBucket.bucketName,
         POSTGRES_HOST: database.instanceEndpoint.hostname,
@@ -222,10 +224,10 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8082,
+      80,
       {
         SPRING_APPLICATION_NAME: "chat-service",
-        SERVER_PORT: "8082",
+        SERVER_PORT: "80",
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
       }
@@ -239,10 +241,10 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8084,
+      80,
       {
         SPRING_APPLICATION_NAME: "summary-service",
-        SERVER_PORT: "8084",
+        SERVER_PORT: "80",
         ENVIRONMENT: "docker",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
       }
@@ -256,10 +258,10 @@ export class CdkStack extends cdk.Stack {
           platform: ecr_assets.Platform.LINUX_AMD64,
         }
       ),
-      8083,
+      80,
       {
         SPRING_APPLICATION_NAME: "lecture-service",
-        SERVER_PORT: "8083",
+        SERVER_PORT: "80",
         POSTGRES_HOST: database.instanceEndpoint.hostname,
         POSTGRES_PORT: database.instanceEndpoint.port.toString(),
         POSTGRES_DB: 'teamsgima',
@@ -275,7 +277,7 @@ export class CdkStack extends cdk.Stack {
       ecs.ContainerImage.fromRegistry(
         "cr.weaviate.io/semitechnologies/weaviate:stable-v1.31-9900730"
       ),
-      8080,
+      80,
       {
         QUERY_DEFAULTS_LIMIT: "25",
         AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true",
@@ -296,11 +298,37 @@ export class CdkStack extends cdk.Stack {
         allowMethods: [apigwv2.CorsHttpMethod.ANY],
         allowOrigins: ['*'],
       },
+      createDefaultStage: false,
+    });
+
+    // Access logging setup
+    const accessLogGroup = new logs.LogGroup(this, 'HttpApiAccessLogs');
+
+    new apigwv2.HttpStage(this, 'DefaultStage', {
+      httpApi,
+      stageName: '$default',
+      autoDeploy: true,
+      accessLogSettings: {
+        destination: new apigwv2.LogGroupLogDestination(accessLogGroup),
+        format: apigw.AccessLogFormat.jsonWithStandardFields({
+          ip: true,
+          caller: true,
+          user: true,
+          requestTime: true,
+          httpMethod: true,
+          resourcePath: true,
+          status: true,
+          protocol: true,
+          responseLength: true,
+        }),
+      },
     });
 
     // VPC Link that allows the HTTP API to reach private ECS services
     const vpcLink = new apigwv2.VpcLink(this, 'InternalServicesVpcLink', {
       vpc,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      securityGroups: [internalServicesSecurityGroup],
     });
 
     httpApi.addRoutes({

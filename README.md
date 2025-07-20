@@ -320,11 +320,11 @@ General HTTP traffic monitoring:
 
 # Architecture Overview
 #### Use Case Diagram
-![Use Case Diagram](docs/readme/use-case.png)
+![Use Case Diagram](docs/diagrams/use-case-diagram.png)
 
 #### UML Class Diagram
 This class diagram shows the relationships between objects in the application
-![Class Diagram](docs/readme/class-diagram.png)
+![Class Diagram](docs/diagrams/class-diagram.png)
 
 #### Top-Level Architecture
 This diagram shows the top level architecture

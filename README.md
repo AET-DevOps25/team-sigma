@@ -340,6 +340,72 @@ This diagram shows the top level architecture
 This diagram shows the analysis object model
 ![Top Level Architecture](docs/diagrams/aom.png)
 
+# AWS Deployment Architecture
+This project is deployed to AWS using the AWS Cloud Development Kit (CDK). The following services make up the production infrastructure:
+
+- **Amazon VPC** – Provides networking with public, private-with-egress, and isolated subnets. Interface and gateway VPC endpoints enable private access to AWS services without traversing the public internet.
+- **Amazon ECS (Fargate)** – Hosts all micro-services (Document, Lecture, Chat, Summary, and Weaviate) as serverless containers inside a dedicated cluster. Each service registers in AWS Cloud Map for internal DNS-based discovery.
+- **Amazon API Gateway (HTTP API)** – Acts as the single public entry point for all backend APIs. A VPC Link forwards traffic securely into the private subnets where the ECS services run.
+- **Amazon RDS for PostgreSQL** – Stores relational data for the Spring Boot services. The instance lives in isolated subnets and is only reachable from the ECS task security group.
+- **Amazon S3**
+  - *Client Bucket* – Hosts the pre-built React single-page application (SPA).
+  - *Document Bucket* – Stores original PDF/slide uploads and any derived artefacts.
+- **Amazon CloudFront** – Serves the SPA globally from edge locations and proxies any request matching `/api/*` to API Gateway, ensuring a single domain for both static assets and APIs.
+- **AWS Secrets Manager** – Keeps database credentials used by the services at runtime.
+- **Amazon CloudWatch Logs** – Collects application logs from all ECS tasks and API Gateway access logs for observability.
+
+Below is a high-level diagram of the deployed architecture:
+
+![AWS Deployment Architecture](docs/diagrams/aws_deployment.png)
+
+## Deployment to AWS with CDK
+
+Follow these steps to deploy the full stack to your AWS account using the CDK project located in `infra/cdk`.
+
+1. **Set required environment variables** (replace the values with your own keys):
+
+   ```bash
+   export OPENAI_API_KEY="sk-..."      # Used by Weaviate for embeddings
+   export OPENAI_APIKEY="sk-..."       # Legacy var for services that expect this name
+   export GEMINI_API_KEY="gk-..."      # Used by GenAI Microservice
+   ```
+
+2. **Bootstrap & deploy the infrastructure** (first pass). From the project root:
+
+   ```bash
+   cd infra/cdk
+   # Install dependencies if you have not yet
+   npm ci
+
+   # Synthesize & deploy the stack – this builds and pushes Docker images, so it can take a while
+   npm run cdk deploy
+   # or equivalently: npx cdk deploy
+   ```
+
+   When the deployment finishes, note the `HttpApiUrl` output in the console. Export it so that the frontend build knows where to reach your APIs:
+
+   ```bash
+   export API_GATEWAY_URL="https://xxxxxxxx.execute-api.<region>.amazonaws.com"
+   ```
+
+3. **Build the frontend for production** – the build embeds the API URL at compile-time:
+
+   ```bash
+   cd ../../../client
+   bun run build        # produces static assets in client/dist
+   ```
+
+4. **Redeploy to publish the client** – this second deploy uploads the freshly built assets to the S3 bucket and issues a CloudFront invalidation:
+
+   ```bash
+   cd ../infra/cdk
+   npm run cdk deploy
+   ```
+
+   After completion, the console will output `ClientSiteUrl`. Open it in a browser to verify everything is working.
+
+> **Tip:** Subsequent UI changes only require repeating steps 3–4. Infrastructure changes (e.g., adding a new service) require running the full deploy again.
+
 # Setup Instructions for Local Development
 ## Prerequisites
 

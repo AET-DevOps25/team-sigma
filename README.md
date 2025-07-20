@@ -237,6 +237,7 @@ Tracks system metrics, displays them in Grafana dashboards, alerts on exceptions
 ## API Documentation
 
 ## Document Service (`/api/documents`)
+http://localhost:8080/api/documents/swagger-ui/index.html
 
 - `GET /api/documents/` - Get all documents (optional `lectureId` query param)
 - `POST /api/documents/upload` - Upload a new document (multipart form data)

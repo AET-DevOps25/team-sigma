@@ -69,12 +69,17 @@ jobs:
 
     strategy:
       matrix:
-        service: [summary-service, chat-service]
+        service: [summary-service, chat-service, genai-service]
         include:
           - service: summary-service
             working-directory: ./server/summary-service
           - service: chat-service
             working-directory: ./server/chat-service
+          - service: genai-service
+            working-directory: ./server/genai-service
+
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'test-api-key' }}
 
     steps:
       - name: Checkout code

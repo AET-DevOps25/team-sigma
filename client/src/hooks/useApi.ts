@@ -91,7 +91,7 @@ export interface LectureRequest {
 }
 
 
-const apiUrl = env.VITE_API_GATEWAY_URL;
+const apiUrl = env.VITE_API_GATEWAY_URL.replace(/\/$/, '');
 // API functions
 const api = {
   // Gateway endpoints

@@ -434,9 +434,29 @@ export class CdkStack extends cdk.Stack {
       },
     });
 
-    // Deploy the built client assets to S3 (ensure `client/dist` exists before deploy)
+    // Build the React app during CDK bundling using Bun and deploy
+    const clientBuildSource = s3deploy.Source.asset(path.join(REPO_ROOT, 'client'), {
+      bundling: {
+        image: cdk.DockerImage.fromRegistry('oven/bun:1.2-alpine'),
+        // The bundler runs inside the container; output must be in /asset-output
+        command: [
+          'sh', '-c', [
+            'bun i --frozen-lockfile',
+            // Provide the API gateway URL at build time; if token not resolved it will default to empty string.
+            `export VITE_API_GATEWAY_URL=${defaultStage.url}`,
+            'bun run build',
+            'cp -r dist/* /asset-output/'
+          ].join(' && ')
+        ],
+        environment: {
+          // Provide any additional vars expected by env.ts at build time
+          VITE_CLERK_PUBLISHABLE_KEY: process.env.VITE_CLERK_PUBLISHABLE_KEY ?? '',
+        },
+      },
+    });
+
     new s3deploy.BucketDeployment(this, 'DeployClient', {
-      sources: [s3deploy.Source.asset(path.join(REPO_ROOT, 'client', 'dist'))],
+      sources: [clientBuildSource],
       destinationBucket: clientBucket,
       distribution,
       distributionPaths: ['/*'],
